@@ -1,18 +1,19 @@
 package util
 
 import (
+	"encoding/base64"
 	"math/rand"
+	"net/url"
 	"strings"
 )
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const (
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
-)
-
 func RandomString(n int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	const (
+		letterIdxBits = 6                    // 6 bits to represent a letter index
+		letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+		letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+	)
 	b := make([]byte, n)
 	// A rand.Int63() generates 63 random bits, enough for letterIdxMax letters!
 	for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {
@@ -31,9 +32,17 @@ func RandomString(n int) string {
 }
 
 func BuildAuthorizationUrl(authEndpoint string, clientId string, redirectUri []string, state string, responseType string, scope []string) string {
-	return authEndpoint + "?" + "cilent_id=" + clientId +
-		"&redirect_url=" + strings.Join(redirectUri, ",") +
+	return authEndpoint + "?" + "client_id=" + clientId +
+		"&redirect_uri=" + EncodeURL(strings.Join(redirectUri, ",")) +
 		"&response_type=" + responseType +
 		"&state=" + state +
 		"&scope=" + strings.Join(scope, "+")
+}
+
+func EncodeURL(s string) string {
+	return url.QueryEscape(s)
+}
+
+func EncodeBase64(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }
