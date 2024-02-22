@@ -14,15 +14,16 @@ func WaitForAuthorizationCode(host string, port int) (string, error) {
 	s := &http.Server{
 		Addr: fmt.Sprintf("%s:%d", host, port),
 	}
-	http.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/oidc/callback", func(w http.ResponseWriter, r *http.Request) {
 		// get the code from the OIDC provider
 		if r != nil {
 			code = r.URL.Query().Get("code")
-			fmt.Printf("Authorization Code: %v\n", code)
+			fmt.Printf("authorization code: %v\n", code)
 		}
 		s.Close()
 
 	})
+	fmt.Printf("listening for authorization code at %s/oidc/callback\n", s.Addr)
 	return code, s.ListenAndServe()
 }
 
