@@ -1,20 +1,31 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"davidallendj/oidc-auth/internal/oauth"
+	"davidallendj/oidc-auth/internal/oidc"
+	"davidallendj/oidc-auth/internal/server"
+	"davidallendj/oidc-auth/internal/util"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+
+	"github.com/spf13/cobra"
+)
 
 var (
-	host string
-	port int
+	host         string
+	port         int
 	redirectUri  = []string{""}
 	state        = ""
 	responseType = "code"
 	scope        = []string{"email", "profile", "openid"}
-	client oauth.Client
+	client       oauth.Client
 )
 
 var loginCmd = &cobra.Command{
-	Use: "login",
-	Short: "Start the login flow"
+	Use:   "login",
+	Short: "Start the login flow",
 	Run: func(cmd *cobra.Command, args []string) {
 		oidcProvider := oidc.NewOIDCProvider()
 		var authorizationUrl = util.BuildAuthorizationUrl(
@@ -49,14 +60,13 @@ var loginCmd = &cobra.Command{
 	},
 }
 
-
-func init(){
+func init() {
 	loginCmd.Flags().StringVar(&client.Id, "client.id", "", "set the client ID")
-	loginCmd.Flags().StringVar(&redirectUri, "redirect-uri", "", "set the redirect URI")
+	loginCmd.Flags().StringSliceVar(&redirectUri, "redirect-uri", []string{""}, "set the redirect URI")
 	loginCmd.Flags().StringVar(&responseType, "response-type", "code", "set the response-type")
 	loginCmd.Flags().StringSliceVar(&scope, "scope", []string{"openid", "email"}, "set the scopes")
-	loginCmd.Flags().String(&state, "state", util.RandomString(), "set the state")
-	loginCmd.Flags().StringVar(host, "host", "127.0.0.1", "set the listening host")
+	loginCmd.Flags().StringVar(&state, "state", util.RandomString(20), "set the state")
+	loginCmd.Flags().StringVar(&host, "host", "127.0.0.1", "set the listening host")
 	loginCmd.Flags().IntVar(&port, "port", 3333, "set the listening port")
 	rootCmd.AddCommand(loginCmd)
 }
