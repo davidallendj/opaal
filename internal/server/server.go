@@ -1,7 +1,6 @@
 package server
 
 import (
-	"davidallendj/oidc-auth/internal/util"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -34,7 +33,7 @@ func FetchToken(code string, remoteUrl string, clientId string, clientSecret str
 		"client_id":     {clientId},
 		"client_secret": {clientSecret},
 		"state":         {state},
-		"redirect_uri":  {util.EncodeURL(strings.Join(redirectUri, ","))},
+		"redirect_uri":  {strings.Join(redirectUri, ",")},
 	}
 	res, err := http.PostForm(remoteUrl, data)
 	if err != nil {
