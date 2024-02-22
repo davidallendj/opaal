@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	identitiesUrl = ""
+	identitiesUrl  = ""
+	accessTokenUrl = ""
 )
 
 var loginCmd = &cobra.Command{
@@ -29,6 +30,12 @@ var loginCmd = &cobra.Command{
 		oidcProvider := oidc.NewOIDCProvider()
 		oidcProvider.Host = config.OIDCHost
 		oidcProvider.Port = config.OIDCPort
+
+		// check if the client ID is set
+		if config.ClientId == "" {
+			fmt.Printf("client ID must be set\n")
+			os.Exit(1)
+		}
 		var authorizationUrl = util.BuildAuthorizationUrl(
 			oidcProvider.GetAuthorizeUrl(),
 			config.ClientId,
@@ -39,10 +46,10 @@ var loginCmd = &cobra.Command{
 		)
 
 		// print the authorization URL for the user to log in
-		fmt.Printf("Login with identity provider: %s\n", authorizationUrl)
+		fmt.Printf("login with identity provider: %s\n", authorizationUrl)
 
 		// authorize oauth client and listen for callback from provider
-		fmt.Printf("Waiting for response from OIDC provider...\n")
+		fmt.Printf("waiting for response from OIDC provider...\n")
 		code, err := api.WaitForAuthorizationCode(config.Host, config.Port)
 		if errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("server closed\n")
@@ -67,12 +74,17 @@ var loginCmd = &cobra.Command{
 			api.CreateIdentity(config.IdentitiesUrl, idToken)
 			api.FetchIdentities(config.IdentitiesUrl)
 		}
+
 		// use ID token/user info to get access token from Ory Hydra
+		if config.AccessTokenUrl != "" {
+			api.FetchAccessToken(config.AccessTokenUrl, config.ClientId, idToken)
+		}
 	},
 }
 
 func init() {
 	loginCmd.Flags().StringVar(&config.ClientId, "client.id", config.ClientId, "set the client ID")
+	loginCmd.Flags().StringVar(&config.ClientSecret, "client.secret", config.ClientSecret, "set the client secret")
 	loginCmd.Flags().StringSliceVar(&config.RedirectUri, "redirect-uri", config.RedirectUri, "set the redirect URI")
 	loginCmd.Flags().StringVar(&config.ResponseType, "response-type", config.ResponseType, "set the response-type")
 	loginCmd.Flags().StringSliceVar(&config.Scope, "scope", config.Scope, "set the scopes")

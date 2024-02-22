@@ -53,6 +53,30 @@ func FetchToken(code string, remoteUrl string, clientId string, clientSecret str
 	return token, nil
 }
 
+func FetchAccessToken(remoteUrl string, clientId string, jwt string) (string, error) {
+	var token string
+	data := url.Values{
+		"grant_type":            {"client_credentials"},
+		"client_id":             {clientId},
+		"client_assertion_type": {"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"},
+		"client_assertion":      {jwt},
+	}
+	res, err := http.PostForm(remoteUrl, data)
+	if err != nil {
+		return "", fmt.Errorf("failed to get token: %s", err)
+	}
+	defer res.Body.Close()
+
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %v", err)
+	}
+	token = string(b)
+
+	fmt.Printf("%v\n", token)
+	return token, nil
+}
+
 func CreateIdentity(remoteUrl string, idToken string) error {
 	data := []byte(`{
 		"schema_id": "preset://email",
