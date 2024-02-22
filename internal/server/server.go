@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,8 +41,14 @@ func FetchToken(code string, remoteUrl string, clientId string, clientSecret str
 		fmt.Printf("failed to get token: %s\n", err)
 		os.Exit(1)
 	}
+	defer res.Body.Close()
 
-	fmt.Printf("request URL: %s\n", remoteUrl)
-	fmt.Printf("token response: %v\n", res)
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Printf("failed to read response body: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("%v\n", string(b))
 	return token, nil
 }
