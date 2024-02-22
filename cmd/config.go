@@ -11,30 +11,32 @@ import (
 )
 
 type Config struct {
-	Host         string   `yaml:"host"`
-	Port         int      `yaml:"port"`
-	RedirectUri  []string `yaml:"redirect-uri"`
-	State        string   `yaml:"state"`
-	ResponseType string   `yaml:"response-type"`
-	Scope        []string `yaml:"scope"`
-	ClientId     string   `yaml:"client.id"`
-	ClientSecret string   `yaml:"client.secret"`
-	OIDCHost     string   `yaml:"oidc.host"`
-	OIDCPort     int      `yaml:"oidc.port"`
+	Host          string   `yaml:"host"`
+	Port          int      `yaml:"port"`
+	RedirectUri   []string `yaml:"redirect-uri"`
+	State         string   `yaml:"state"`
+	ResponseType  string   `yaml:"response-type"`
+	Scope         []string `yaml:"scope"`
+	ClientId      string   `yaml:"client.id"`
+	ClientSecret  string   `yaml:"client.secret"`
+	OIDCHost      string   `yaml:"oidc.host"`
+	OIDCPort      int      `yaml:"oidc.port"`
+	IdentitiesUrl string   `yaml:"identities-url"`
 }
 
 func NewConfig() Config {
 	return Config{
-		Host:         "127.0.0.1",
-		Port:         3333,
-		RedirectUri:  []string{""},
-		State:        util.RandomString(20),
-		ResponseType: "code",
-		Scope:        []string{"openid", "profile", "email"},
-		ClientId:     "",
-		ClientSecret: "",
-		OIDCHost:     "127.0.0.1",
-		OIDCPort:     80,
+		Host:          "127.0.0.1",
+		Port:          3333,
+		RedirectUri:   []string{""},
+		State:         util.RandomString(20),
+		ResponseType:  "code",
+		Scope:         []string{"openid", "profile", "email"},
+		ClientId:      "",
+		ClientSecret:  "",
+		OIDCHost:      "127.0.0.1",
+		OIDCPort:      80,
+		IdentitiesUrl: "",
 	}
 }
 

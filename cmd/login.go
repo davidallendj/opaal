@@ -1,15 +1,20 @@
 package cmd
 
 import (
+	"davidallendj/oidc-auth/internal/api"
 	"davidallendj/oidc-auth/internal/oidc"
-	"davidallendj/oidc-auth/internal/server"
 	"davidallendj/oidc-auth/internal/util"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
+)
+
+var (
+	identitiesUrl = ""
 )
 
 var loginCmd = &cobra.Command{
@@ -38,7 +43,7 @@ var loginCmd = &cobra.Command{
 
 		// authorize oauth client and listen for callback from provider
 		fmt.Printf("Waiting for response from OIDC provider...\n")
-		code, err := server.WaitForAuthorizationCode(config.Host, config.Port)
+		code, err := api.WaitForAuthorizationCode(config.Host, config.Port)
 		if errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("server closed\n")
 		} else if err != nil {
@@ -47,12 +52,21 @@ var loginCmd = &cobra.Command{
 		}
 
 		// use code from response and exchange for bearer token
-		server.FetchToken(code, oidcProvider.GetTokenUrl(), config.ClientId, config.ClientSecret, config.State, config.RedirectUri)
+		tokenString, err := api.FetchToken(code, oidcProvider.GetTokenUrl(), config.ClientId, config.ClientSecret, config.State, config.RedirectUri)
+		if err != nil {
+			fmt.Printf("%v\n", err)
+			return
+		}
 
-		// extract ID token and save user info
+		var data map[string]any
+		json.Unmarshal([]byte(tokenString), &data)
+		idToken := data["id_token"].(string)
 
-		// create a new identity with Ory Kratos
-
+		// create a new identity with Ory Kratos if identitiesUrl is provided
+		if config.IdentitiesUrl != "" {
+			api.CreateIdentity(config.IdentitiesUrl, idToken)
+			api.FetchIdentities(config.IdentitiesUrl)
+		}
 		// use ID token/user info to get access token from Ory Hydra
 	},
 }
