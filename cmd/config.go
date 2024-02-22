@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"davidallendj/oidc-auth/internal/util"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -79,6 +80,11 @@ var configCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// create a new config at all args (paths)
 		for _, path := range args {
+			// check and make sure something doesn't exist first
+			if exists, err := util.PathExists(path); exists || err != nil {
+				fmt.Printf("file or directory exists\n")
+				continue
+			}
 			SaveDefaultConfig(path)
 		}
 	},
