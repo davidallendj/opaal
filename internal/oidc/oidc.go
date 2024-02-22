@@ -7,7 +7,7 @@ type OpenIDConnectProvider struct {
 	ConfigEndpoint    string
 }
 
-func NewOpenIDConnect() *OpenIDConnectProvider {
+func NewOIDCProvider() *OpenIDConnectProvider {
 	return &OpenIDConnectProvider{
 		Host:              "https://gitlab.newmexicoconsortium.org",
 		AuthorizeEndpoint: "/oauth/authorize",
@@ -15,11 +15,11 @@ func NewOpenIDConnect() *OpenIDConnectProvider {
 	}
 }
 
-func (oidc *OpenIDConnectProvider) AuthorizeUrl() string {
+func (oidc *OpenIDConnectProvider) GetAuthorizeUrl() string {
 	return oidc.Host + oidc.AuthorizeEndpoint
 }
 
-func (oidc *OpenIDConnectProvider) TokenUrl() string {
+func (oidc *OpenIDConnectProvider) GetTokenUrl() string {
 	return oidc.Host + oidc.TokenEndpoint
 }
 
