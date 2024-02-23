@@ -1,4 +1,4 @@
-module davidallendj/opal
+module davidallendj/opaal
 
 go 1.22.0
 
