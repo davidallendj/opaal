@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"davidallendj/opal/internal/oauth"
-	"davidallendj/opal/internal/oidc"
-	"davidallendj/opal/internal/util"
+	"davidallendj/opaal/internal/oauth"
+	"davidallendj/opaal/internal/oidc"
+	"davidallendj/opaal/internal/util"
 	"fmt"
 	"log"
 	"os"

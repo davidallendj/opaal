@@ -107,11 +107,11 @@ var loginCmd = &cobra.Command{
 		}
 
 		// fetch JWKS and add issuer to authentication server to submit ID token
-		jwk, err := api.FetchJwk("")
+		err = idp.FetchJwk("")
 		if err != nil {
 			fmt.Printf("failed to fetch JWK: %v\n", err)
 		} else {
-			api.AddTrustedIssuer(config.AuthEndpoints.TrustedIssuers, jwk.(string))
+			api.AddTrustedIssuer(config.AuthEndpoints.TrustedIssuers, idp.Key)
 		}
 
 		// use ID token/user info to fetch access token from authentication server

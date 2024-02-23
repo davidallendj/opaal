@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/lestrrat-go/jwx/jwk"
 )
 
 func WaitForAuthorizationCode(serverAddr string, loginUrl string) (string, error) {
@@ -78,7 +80,7 @@ func FetchAccessToken(remoteUrl string, clientId string, jwt string, scopes []st
 	return token, nil
 }
 
-func AddTrustedIssuer(remoteUrl string, issuer string, subject string, duration time.Duration, jwk string, scope []string) error {
+func AddTrustedIssuer(remoteUrl string, issuer string, subject string, duration time.Duration, jwk jwk.Key, scope []string) error {
 	// hydra endpoint: /admin/trust/grants/jwt-bearer/issuers
 	data := []byte(fmt.Sprintf(`{
 		"allow_any_subject": false,
@@ -87,7 +89,7 @@ func AddTrustedIssuer(remoteUrl string, issuer string, subject string, duration 
 		"expires_at": "%v"
 		"jwk": %v,
 		"scope": [ j%s ],
-	}`, issuer, subject, time.Now().Add(duration), jwk, strings.Join(scope, ",")))
+	}`, issuer, subject, time.Now().Add(duration), string(jwk), strings.Join(scope, ",")))
 
 	req, err := http.NewRequest("POST", remoteUrl, bytes.NewBuffer(data))
 	if err != nil {
