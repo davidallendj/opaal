@@ -1,15 +1,15 @@
 package oauth
 
 type Client struct {
-	Id     string
-	Secret string
-	Issuer string
+	Id           string   `yaml:"id"`
+	Secret       string   `yaml:"secret"`
+	RedirectUris []string `yaml:"redirect_uris"`
 }
 
 func NewClient() *Client {
 	return &Client{
-		Id:     "",
-		Secret: "",
-		Issuer: "",
+		Id:           "",
+		Secret:       "",
+		RedirectUris: []string{""},
 	}
 }

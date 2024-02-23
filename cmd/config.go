@@ -1,7 +1,9 @@
 package cmd
 
 import (
-	"davidallendj/oidc-auth/internal/util"
+	"davidallendj/opal/internal/oauth"
+	"davidallendj/opal/internal/oidc"
+	"davidallendj/opal/internal/util"
 	"fmt"
 	"log"
 	"os"
@@ -11,35 +13,51 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+type Server struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
+}
+
+type AuthEndpoints struct {
+	Identities     string `yaml:"identities"`
+	TrustedIssuers string `yaml:"trusted-issuers"`
+	AccessToken    string `yaml:"access-token"`
+	ServerConfig   string `yaml:"server-config"`
+}
+
 type Config struct {
-	Host           string   `yaml:"host"`
-	Port           int      `yaml:"port"`
-	RedirectUri    []string `yaml:"redirect-uri"`
-	State          string   `yaml:"state"`
-	ResponseType   string   `yaml:"response-type"`
-	Scope          []string `yaml:"scope"`
-	ClientId       string   `yaml:"client.id"`
-	ClientSecret   string   `yaml:"client.secret"`
-	OIDCHost       string   `yaml:"oidc.host"`
-	OIDCPort       int      `yaml:"oidc.port"`
-	IdentitiesUrl  string   `yaml:"identities-url"`
-	AccessTokenUrl string   `yaml:"access-token-url"`
+	Server           Server                `yaml:"server"`
+	Client           oauth.Client          `yaml:"client"`
+	IdentityProvider oidc.IdentityProvider `yaml:"oidc"`
+	State            string                `yaml:"state"`
+	ResponseType     string                `yaml:"response-type"`
+	Scope            []string              `yaml:"scope"`
+	AuthEndpoints    AuthEndpoints         `yaml:"urls"`
+	OpenBrowser      bool                  `yaml:"open-browser"`
 }
 
 func NewConfig() Config {
 	return Config{
-		Host:           "127.0.0.1",
-		Port:           3333,
-		RedirectUri:    []string{""},
-		State:          util.RandomString(20),
-		ResponseType:   "code",
-		Scope:          []string{"openid", "profile", "email"},
-		ClientId:       "",
-		ClientSecret:   "",
-		OIDCHost:       "127.0.0.1",
-		OIDCPort:       80,
-		IdentitiesUrl:  "",
-		AccessTokenUrl: "",
+		Server: Server{
+			Host: "127.0.0.1",
+			Port: 3333,
+		},
+		Client: oauth.Client{
+			Id:           "",
+			Secret:       "",
+			RedirectUris: []string{""},
+		},
+		IdentityProvider: *oidc.NewIdentityProvider(),
+		State:            util.RandomString(20),
+		ResponseType:     "code",
+		Scope:            []string{"openid", "profile", "email"},
+		AuthEndpoints: AuthEndpoints{
+			Identities:     "",
+			AccessToken:    "",
+			TrustedIssuers: "",
+			ServerConfig:   "",
+		},
+		OpenBrowser: false,
 	}
 }
 

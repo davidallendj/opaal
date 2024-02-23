@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"davidallendj/oidc-auth/internal/api"
-	"davidallendj/oidc-auth/internal/oidc"
-	"davidallendj/oidc-auth/internal/util"
+	"davidallendj/opal/internal/api"
+	"davidallendj/opal/internal/oidc"
+	"davidallendj/opal/internal/util"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,83 +13,123 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	identitiesUrl  = ""
-	accessTokenUrl = ""
-)
+func hasRequiredParams(config *Config) bool {
+	return config.Client.Id != "" && config.Client.Secret != ""
+}
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Start the login flow",
 	Run: func(cmd *cobra.Command, args []string) {
+		// load config if found
 		if configPath != "" {
-			config = LoadConfig(configPath)
-		} else {
-			config = NewConfig()
+			exists, err := util.PathExists(configPath)
+			if err != nil {
+				fmt.Printf("failed to load config")
+				os.Exit(1)
+			} else if exists {
+				config = LoadConfig(configPath)
+			} else {
+				config = NewConfig()
+			}
 		}
-		oidcProvider := oidc.NewOIDCProvider()
-		oidcProvider.Host = config.OIDCHost
-		oidcProvider.Port = config.OIDCPort
+		// try and fetch server configuration if provided URL
+		idp := oidc.NewIdentityProvider()
+		if config.AuthEndpoints.ServerConfig != "" {
+			idp.FetchServerConfig(config.AuthEndpoints.ServerConfig)
+		} else {
+			// otherwise, use what's provided in config file
+			idp.Issuer = config.IdentityProvider.Issuer
+			idp.Endpoints = config.IdentityProvider.Endpoints
+			idp.Supported = config.IdentityProvider.Supported
+		}
 
-		// check if the client ID is set
-		if config.ClientId == "" {
+		// check if all appropriate parameters are set in config
+		if !hasRequiredParams(&config) {
 			fmt.Printf("client ID must be set\n")
 			os.Exit(1)
 		}
+
+		// build the authorization URL to redirect user for social sign-in
 		var authorizationUrl = util.BuildAuthorizationUrl(
-			oidcProvider.GetAuthorizeUrl(),
-			config.ClientId,
-			config.RedirectUri,
+			idp.Endpoints.Authorize,
+			config.Client.Id,
+			config.Client.RedirectUris,
 			config.State,
 			config.ResponseType,
 			config.Scope,
 		)
 
-		// print the authorization URL for the user to log in
-		fmt.Printf("login with identity provider: %s\n", authorizationUrl)
+		// print the authorization URL for sharing
+		serverAddr := fmt.Sprintf("%s:%d", config.IdentityProvider.Issuer)
+		fmt.Printf(`Login with identity provider: 
+			%s/login
+			%s\n`,
+			serverAddr, authorizationUrl,
+		)
+
+		// automatically open browser to initiate login flow (only useful for testing)
+		if config.OpenBrowser {
+			util.OpenUrl(authorizationUrl)
+		}
 
 		// authorize oauth client and listen for callback from provider
-		fmt.Printf("waiting for response from OIDC provider...\n")
-		code, err := api.WaitForAuthorizationCode(config.Host, config.Port)
+		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", serverAddr)
+		code, err := api.WaitForAuthorizationCode(serverAddr, authorizationUrl)
 		if errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("server closed\n")
+			fmt.Printf("Server closed.\n")
 		} else if err != nil {
-			fmt.Printf("error starting server: %s\n", err)
+			fmt.Printf("Error starting server: %s\n", err)
 			os.Exit(1)
 		}
 
-		// use code from response and exchange for bearer token
-		tokenString, err := api.FetchToken(code, oidcProvider.GetTokenUrl(), config.ClientId, config.ClientSecret, config.State, config.RedirectUri)
+		// use code from response and exchange for bearer token (with ID token)
+		tokenString, err := api.FetchIssuerToken(
+			code,
+			idp.Endpoints.Token,
+			config.Client,
+			config.State,
+		)
 		if err != nil {
 			fmt.Printf("%v\n", err)
 			return
 		}
 
+		// extract ID token from bearer as JSON string for easy consumption
 		var data map[string]any
 		json.Unmarshal([]byte(tokenString), &data)
 		idToken := data["id_token"].(string)
 
-		// create a new identity with Ory Kratos if identitiesUrl is provided
-		if config.IdentitiesUrl != "" {
-			api.CreateIdentity(config.IdentitiesUrl, idToken)
-			api.FetchIdentities(config.IdentitiesUrl)
+		// create a new identity with identity and session manager if url is provided
+		if config.AuthEndpoints.Identities != "" {
+			api.CreateIdentity(config.AuthEndpoints.Identities, idToken)
+			api.FetchIdentities(config.AuthEndpoints.Identities)
 		}
 
-		// use ID token/user info to get access token from Ory Hydra
-		if config.AccessTokenUrl != "" {
-			api.FetchAccessToken(config.AccessTokenUrl, config.ClientId, idToken)
+		// fetch JWKS and add issuer to authentication server to submit ID token
+		jwk, err := api.FetchJwk("")
+		if err != nil {
+			fmt.Printf("failed to fetch JWK: %v\n", err)
+		} else {
+			api.AddTrustedIssuer(config.AuthEndpoints.TrustedIssuers, jwk.(string))
+		}
+
+		// use ID token/user info to fetch access token from authentication server
+		if config.AuthEndpoints.AccessToken != "" {
+			api.FetchAccessToken(config.AuthEndpoints.AccessToken, config.Client.Id, idToken, config.Scope)
 		}
 	},
 }
 
 func init() {
-	loginCmd.Flags().StringVar(&config.ClientId, "client.id", config.ClientId, "set the client ID")
-	loginCmd.Flags().StringVar(&config.ClientSecret, "client.secret", config.ClientSecret, "set the client secret")
-	loginCmd.Flags().StringSliceVar(&config.RedirectUri, "redirect-uri", config.RedirectUri, "set the redirect URI")
+	loginCmd.Flags().StringVar(&config.Client.Id, "client.id", config.Client.Id, "set the client ID")
+	loginCmd.Flags().StringVar(&config.Client.Secret, "client.secret", config.Client.Secret, "set the client secret")
+	loginCmd.Flags().StringSliceVar(&config.Client.RedirectUris, "redirect-uri", config.Client.RedirectUris, "set the redirect URI")
 	loginCmd.Flags().StringVar(&config.ResponseType, "response-type", config.ResponseType, "set the response-type")
 	loginCmd.Flags().StringSliceVar(&config.Scope, "scope", config.Scope, "set the scopes")
 	loginCmd.Flags().StringVar(&config.State, "state", config.State, "set the state")
-	loginCmd.Flags().StringVar(&config.Host, "host", config.Host, "set the listening host")
-	loginCmd.Flags().IntVar(&config.Port, "port", config.Port, "set the listening port")
+	loginCmd.Flags().StringVar(&config.Server.Host, "host", config.Server.Host, "set the listening host")
+	loginCmd.Flags().IntVar(&config.Server.Port, "port", config.Server.Port, "set the listening port")
+	loginCmd.Flags().BoolVar(&config.OpenBrowser, "open-browser", config.OpenBrowser, "automatically open link in browser")
 	rootCmd.AddCommand(loginCmd)
 }
