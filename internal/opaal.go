@@ -169,7 +169,7 @@ func Login(config *Config) error {
 		fmt.Printf("failed to fetch JWK: %v\n", err)
 	} else {
 		fmt.Printf("Attempting to add issuer to authorization server...\n")
-		err = AddTrustedIssuer(config.ActionUrls.TrustedIssuers, *idp, subject, time.Duration(1000), config.Scope)
+		err = AddTrustedIssuer(config.ActionUrls.TrustedIssuers, idp, subject, time.Duration(1000), config.Scope)
 		if err != nil {
 			return fmt.Errorf("failed to add trusted issuer: %v", err)
 		}
@@ -256,8 +256,11 @@ func FetchAccessToken(remoteUrl string, clientId string, jwt string, scopes []st
 	return token, nil
 }
 
-func AddTrustedIssuer(remoteUrl string, idp oidc.IdentityProvider, subject string, duration time.Duration, scope []string) error {
+func AddTrustedIssuer(remoteUrl string, idp *oidc.IdentityProvider, subject string, duration time.Duration, scope []string) error {
 	// hydra endpoint: /admin/trust/grants/jwt-bearer/issuers
+	if idp == nil {
+		return fmt.Errorf("identity provided is nil")
+	}
 	jwkstr, err := json.Marshal(idp.Key)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JWK: %v", err)
