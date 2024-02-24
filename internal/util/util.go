@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"github.com/golang-jwt/jwt"
 )
 
 func RandomString(n int) string {
@@ -50,6 +52,17 @@ func EncodeBase64(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
+func DecodeJwt(encoded string) ([][]byte, error) {
+	// split the string into 3 segments and decode
+	segments := strings.Split(encoded, ".")
+	decoded := [][]byte{}
+	for _, segment := range segments {
+		bytes, _ := jwt.DecodeSegment(segment)
+		decoded = append(decoded, bytes)
+	}
+	return decoded, nil
+}
+
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -78,4 +91,12 @@ func OpenUrl(url string) error {
 	}
 	args = append(args, url)
 	return exec.Command(cmd, args...).Start()
+}
+
+func GetCommit() string {
+	bytes, err := exec.Command("git", "rev --parse HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	return string(bytes)
 }

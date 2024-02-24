@@ -3,7 +3,7 @@ package oauth
 type Client struct {
 	Id           string   `yaml:"id"`
 	Secret       string   `yaml:"secret"`
-	RedirectUris []string `yaml:"redirect_uris"`
+	RedirectUris []string `yaml:"redirect-uris"`
 }
 
 func NewClient() *Client {

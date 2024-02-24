@@ -1,21 +1,13 @@
 package cmd
 
 import (
-	"davidallendj/opal/internal/api"
-	"davidallendj/opal/internal/oidc"
-	"davidallendj/opal/internal/util"
-	"encoding/json"
-	"errors"
+	opaal "davidallendj/opaal/internal"
+	"davidallendj/opaal/internal/util"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
 )
-
-func hasRequiredParams(config *Config) bool {
-	return config.Client.Id != "" && config.Client.Secret != ""
-}
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
@@ -28,95 +20,15 @@ var loginCmd = &cobra.Command{
 				fmt.Printf("failed to load config")
 				os.Exit(1)
 			} else if exists {
-				config = LoadConfig(configPath)
+				config = opaal.LoadConfig(configPath)
 			} else {
-				config = NewConfig()
+				config = opaal.NewConfig()
 			}
 		}
-		// try and fetch server configuration if provided URL
-		idp := oidc.NewIdentityProvider()
-		if config.AuthEndpoints.ServerConfig != "" {
-			idp.FetchServerConfig(config.AuthEndpoints.ServerConfig)
-		} else {
-			// otherwise, use what's provided in config file
-			idp.Issuer = config.IdentityProvider.Issuer
-			idp.Endpoints = config.IdentityProvider.Endpoints
-			idp.Supported = config.IdentityProvider.Supported
-		}
-
-		// check if all appropriate parameters are set in config
-		if !hasRequiredParams(&config) {
-			fmt.Printf("client ID must be set\n")
-			os.Exit(1)
-		}
-
-		// build the authorization URL to redirect user for social sign-in
-		var authorizationUrl = util.BuildAuthorizationUrl(
-			idp.Endpoints.Authorize,
-			config.Client.Id,
-			config.Client.RedirectUris,
-			config.State,
-			config.ResponseType,
-			config.Scope,
-		)
-
-		// print the authorization URL for sharing
-		serverAddr := fmt.Sprintf("%s:%d", config.IdentityProvider.Issuer)
-		fmt.Printf(`Login with identity provider: 
-			%s/login
-			%s\n`,
-			serverAddr, authorizationUrl,
-		)
-
-		// automatically open browser to initiate login flow (only useful for testing)
-		if config.OpenBrowser {
-			util.OpenUrl(authorizationUrl)
-		}
-
-		// authorize oauth client and listen for callback from provider
-		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", serverAddr)
-		code, err := api.WaitForAuthorizationCode(serverAddr, authorizationUrl)
-		if errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("Server closed.\n")
-		} else if err != nil {
-			fmt.Printf("Error starting server: %s\n", err)
-			os.Exit(1)
-		}
-
-		// use code from response and exchange for bearer token (with ID token)
-		tokenString, err := api.FetchIssuerToken(
-			code,
-			idp.Endpoints.Token,
-			config.Client,
-			config.State,
-		)
+		err := opaal.Login(&config)
 		if err != nil {
-			fmt.Printf("%v\n", err)
-			return
-		}
-
-		// extract ID token from bearer as JSON string for easy consumption
-		var data map[string]any
-		json.Unmarshal([]byte(tokenString), &data)
-		idToken := data["id_token"].(string)
-
-		// create a new identity with identity and session manager if url is provided
-		if config.AuthEndpoints.Identities != "" {
-			api.CreateIdentity(config.AuthEndpoints.Identities, idToken)
-			api.FetchIdentities(config.AuthEndpoints.Identities)
-		}
-
-		// fetch JWKS and add issuer to authentication server to submit ID token
-		err = idp.FetchJwk("")
-		if err != nil {
-			fmt.Printf("failed to fetch JWK: %v\n", err)
-		} else {
-			api.AddTrustedIssuer(config.AuthEndpoints.TrustedIssuers, idp.Key)
-		}
-
-		// use ID token/user info to fetch access token from authentication server
-		if config.AuthEndpoints.AccessToken != "" {
-			api.FetchAccessToken(config.AuthEndpoints.AccessToken, config.Client.Id, idToken, config.Scope)
+			fmt.Print(err)
+			os.Exit(1)
 		}
 	},
 }
@@ -131,5 +43,7 @@ func init() {
 	loginCmd.Flags().StringVar(&config.Server.Host, "host", config.Server.Host, "set the listening host")
 	loginCmd.Flags().IntVar(&config.Server.Port, "port", config.Server.Port, "set the listening port")
 	loginCmd.Flags().BoolVar(&config.OpenBrowser, "open-browser", config.OpenBrowser, "automatically open link in browser")
+	loginCmd.Flags().BoolVar(&config.DecodeIdToken, "decode-id-token", config.DecodeIdToken, "decode and print ID token from identity provider")
+	loginCmd.Flags().BoolVar(&config.DecodeAccessToken, "decore-access-token", config.DecodeAccessToken, "decode and print access token from authorization server")
 	rootCmd.AddCommand(loginCmd)
 }

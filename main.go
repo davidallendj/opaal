@@ -1,6 +1,6 @@
 package main
 
-import "davidallendj/oidc-auth/cmd"
+import "davidallendj/opaal/cmd"
 
 var (
 	userDB = ""

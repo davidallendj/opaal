@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	opaal "davidallendj/opaal/internal"
 	"fmt"
 	"os"
 
@@ -9,7 +10,7 @@ import (
 
 var (
 	configPath = ""
-	config     Config
+	config     opaal.Config
 )
 var rootCmd = &cobra.Command{
 	Use:   "oidc",
