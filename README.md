@@ -35,7 +35,7 @@ These commands will create a default config, then start the login process. Maybe
 	- ...making a request to the authorization server to trust the identity provider (optional)
 	- ...making a request to the authorization server to receive an access token (optional)
 
-*After receiving the ID token, the rest of the flow requires the appropriate URLs to be set
+*After receiving the ID token, the rest of the flow requires the appropriate URLs to be set to continue.
 
 ## TODO
 
