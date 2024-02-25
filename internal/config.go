@@ -1,7 +1,6 @@
 package opaal
 
 import (
-	"davidallendj/opaal/internal/oauth"
 	"davidallendj/opaal/internal/oidc"
 	"davidallendj/opaal/internal/util"
 	"log"
@@ -14,7 +13,7 @@ import (
 type Config struct {
 	Version           string                `yaml:"version"`
 	Server            Server                `yaml:"server"`
-	Client            oauth.Client          `yaml:"client"`
+	Client            Client                `yaml:"client"`
 	IdentityProvider  oidc.IdentityProvider `yaml:"oidc"`
 	State             string                `yaml:"state"`
 	ResponseType      string                `yaml:"response-type"`
@@ -32,7 +31,7 @@ func NewConfig() Config {
 			Host: "127.0.0.1",
 			Port: 3333,
 		},
-		Client: oauth.Client{
+		Client: Client{
 			Id:           "",
 			Secret:       "",
 			RedirectUris: []string{""},

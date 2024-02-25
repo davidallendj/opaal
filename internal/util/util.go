@@ -36,15 +36,7 @@ func RandomString(n int) string {
 	return string(b)
 }
 
-func BuildAuthorizationUrl(authEndpoint string, clientId string, redirectUri []string, state string, responseType string, scope []string) string {
-	return authEndpoint + "?" + "client_id=" + clientId +
-		"&redirect_uri=" + EncodeURL(strings.Join(redirectUri, ",")) +
-		"&response_type=" + responseType +
-		"&state=" + state +
-		"&scope=" + strings.Join(scope, "+")
-}
-
-func EncodeURL(s string) string {
+func URLEscape(s string) string {
 	return url.QueryEscape(s)
 }
 

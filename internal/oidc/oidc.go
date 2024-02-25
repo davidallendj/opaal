@@ -116,7 +116,7 @@ func (p *IdentityProvider) FetchServerConfig(url string) error {
 		return fmt.Errorf("failed to create a new request: %v", err)
 	}
 
-	client := &http.Client{}
+	client := &http.Client{} // temp client to get info and not used in flow
 	res, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to do request: %v", err)
