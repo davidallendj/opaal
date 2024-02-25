@@ -1,0 +1,146 @@
+version: "3.7"
+
+networks:
+  internal:
+  external:
+    external: true
+
+volumes:
+  postgres-data:
+
+services:
+  postgres: # Postgres
+    image: postgres:11.5-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_MULTIPLE_DATABASES: hydradb:hydra-user:hydra,kratosdb:kratos-user:kratos
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./pg-init:/docker-entrypoint-initdb.d
+    networks:
+      - internal
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "postgres", "-U", "postgres"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+  hydra:
+    image: oryd/hydra:v2.2.0-rc.3
+    ports:
+      - "4444:4444" # Public port
+      - "4445:4445" # Admin port
+      - "5555:5555" # Port for hydra token user
+    command: serve -c /etc/config/hydra/hydra.yml all --dev
+    volumes:
+      - type: bind
+        source: ./configs/hydra
+        target: /etc/config/hydra
+    environment:
+      - DSN=postgres://hydra-user:hydra@postgres:5432/hydradb?sslmode=disable&max_conns=20&max_idle_conns=4
+    restart: unless-stopped
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    networks:
+      - internal
+  hydra-migrate:
+    image: oryd/hydra:v2.2.0-rc.3
+    environment:
+      - DSN=postgres://hydra-user:hydra@postgres:5432/hydradb?sslmode=disable&max_conns=20&max_idle_conns=4
+    command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+    volumes:
+      - type: bind
+        source: ./configs/hydra
+        target: /etc/config/hydra
+    restart: on-failure
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+  consent:
+    environment:
+      - HYDRA_ADMIN_URL=http://hydra:4445
+      - KRATOS_ADMIN_URL=http://kratos:4434
+      - LISTEN_ADDRESS=:3001
+    image: oryd/hydra-login-consent-node:v2.2.0-rc.3
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    networks:
+      - internal
+  kratos:
+    image: oryd/kratos:latest
+    container_name: kratos
+    hostname: kratos
+    ports:
+      - "4433:4433" # public
+      - "4434:4434" # admin
+    command: serve -c /etc/config/kratos/kratos.yml all --dev --watch-courier
+    volumes:
+      - type: bind
+        source: ./configs/kratos
+        target: /etc/config/kratos
+    environment:
+      - DSN=postgres://kratos-user:kratos@postgres:5432/kratosdb?sslmode=disable&max_conns=20&max_idle_conns=4
+      - USER_ID=1000
+      - GROUP_ID=1000
+      - LOG_LEVEL=trace
+    restart: unless-stopped
+    depends_on:
+      kratos-migrate:
+        condition:
+          service_completed_successfully
+      postgres:
+        condition:
+          service_healthy
+    networks:
+      - internal
+  kratos-migrate:
+    image: oryd/kratos:latest
+    container_name: kratos-migrate
+    environment:
+      - DSN=postgres://kratos-user:kratos@postgres:5432/kratosdb?sslmode=disable&max_conns=20&max_idle_conns=4
+      - USER_ID=1000
+      - GROUP_ID=1000
+    user: "${USER_ID}:${GROUP_ID}"
+    volumes:
+      - type: bind
+        source: ./configs/kratos
+        target: /etc/config/kratos
+    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+  kratos-selfservice-ui-node:
+    image: oryd/kratos-selfservice-ui-node:latest
+    environment:
+      - PORT=4455
+      - SECURITY_MODE=
+      - HYDRA_ADMIN_URL=http://127.0.0.1:4445/
+      - KRATOS_PUBLIC_URL=http://kratos:4433/
+      - KRATOS_BROWSER_URL=http://127.0.0.1:4433/
+      - COOKE_SECRET=1234567890
+      - CSRF_COOKIE_NAME=_OPENCHAMI-CSRF
+      - CSRF_COOKIE_SECRET=OCHAMI1234
+      - COOKIE_SECRET=testTESTtestTESTtestTEST
+    networks:
+      - internal
+    restart: on-failure
+    ports:
+      - "4455:4455"
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    ports:
+      - '4436:4436'
+      - '4437:4437'
+    networks:
+      - internal
