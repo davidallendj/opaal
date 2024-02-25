@@ -12,6 +12,7 @@ volumes:
 services:
   hydra:
     image: oryd/hydra:v2.2.0
+    container_name: hydra
     ports:
       - "4444:4444" # Public port
       - "4445:4445" # Admin port
@@ -85,6 +86,7 @@ services:
     depends_on:
       - kratos-migrate
     image: oryd/kratos:v1.1.0
+    container_name: kratos
     ports:
       - '4433:4433' # public
       - '4434:4434' # admin

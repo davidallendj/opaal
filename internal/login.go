@@ -83,7 +83,7 @@ func Login(config *Config) error {
 	// unmarshal data to get id_token and access_token
 	var data map[string]any
 	err = json.Unmarshal([]byte(tokenString), &data)
-	if err != nil {
+	if err != nil || data == nil {
 		return fmt.Errorf("failed to unmarshal token: %v", err)
 	}
 
@@ -128,6 +128,7 @@ func Login(config *Config) error {
 		if err != nil {
 			return fmt.Errorf("failed to fetch identities: %v", err)
 		}
+		fmt.Printf("Created new identity successfully.\n")
 	}
 
 	// extract the subject from ID token claims
@@ -160,12 +161,15 @@ func Login(config *Config) error {
 	fmt.Printf("Fetching JWKS from authentication server for verification...\n")
 	err = idp.FetchJwk(config.ActionUrls.JwksUri)
 	if err != nil {
-		fmt.Printf("failed to fetch JWK: %v\n", err)
+		return fmt.Errorf("failed to fetch JWK: %v\n", err)
 	} else {
 		fmt.Printf("Attempting to add issuer to authorization server...\n")
-		_, err = client.AddTrustedIssuer(config.ActionUrls.TrustedIssuers, idp, subject, time.Duration(1000), config.Scope)
+		res, err := client.AddTrustedIssuer(config.ActionUrls.TrustedIssuers, idp, subject, time.Duration(1000), config.Scope)
 		if err != nil {
 			return fmt.Errorf("failed to add trusted issuer: %v", err)
+		}
+		if string(res) == "" {
+			fmt.Printf("Added issuer to authorization server successfully.\n")
 		}
 	}
 
