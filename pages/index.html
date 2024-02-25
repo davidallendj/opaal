@@ -1,16 +1,6 @@
 <!DOCTYPE html>
 <html>
-	Redirecting you to sign-in page...
-	<script>
-		function _sleep(ms) {
-			return new Promise(resolve => setTimeout(resolve, ms));
-		}
-		async function sleep(s) {
-			for (let i = 0; i < 5; i++) {
-				await sleep(i * 1000)
-			}
-		}
-		sleep(5000)
-		window.location.replace("{{loginUrl}}")
-	</script>
+	Welcome to Opaal's default login in page! Click the link below to log in with your identity provider:
+
+	<aref src="{{loginUrl}}">Login</aref>
 </html>
