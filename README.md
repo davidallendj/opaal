@@ -40,5 +40,5 @@ These commands will create a default config, then start the login process. Maybe
 ## TODO
 
 - When the process is complete, `opaal` will present the user with a "Success!" page along with the access token and a message indicating that the process is completed.
-
+- Add functional login page example
 - Add unit tests
