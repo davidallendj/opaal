@@ -37,6 +37,14 @@ These commands will create a default config, then start the login process. Maybe
 
 *After receiving the ID token, the rest of the flow requires the appropriate URLs to be set to continue.
 
+## Troubleshooting
+
+- Make sure all remote hosts in config file are reachable.
+- If you get a CSRF violation error, try clearing the cookies in your browser.
+- If you only want to receive an ID token, comment out the other URLs in config. This may be changed in the future.
+- The JWKS url can be found from your authentication server's OpenID configuration
+`curl https://<your authetication server>/.well-known/openid-configuration`
+
 ## TODO
 
 - When the process is complete, `opaal` will present the user with a "Success!" page along with the access token and a message indicating that the process is completed.
