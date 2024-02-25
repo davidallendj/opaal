@@ -24,7 +24,7 @@ selfservice:
         base_redirect_uri: http://127.0.0.1:4433
         providers:
           - id: forgejo
-            provider: forgejo
+            provider: generic
             client_id: 7527e7b4-c96a-4df0-8fc5-00fde18bb65d
             client_secret: gto_cc5uvpb5lsdczkwnbarvwmbpv5kcjwg7nhbc75zt65yrfh2ldenq
             issuer_url: http://git.towk.local
