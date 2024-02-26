@@ -44,7 +44,8 @@ func (client *Client) BuildAuthorizationUrl(authEndpoint string, state string, r
 		"&redirect_uri=" + util.URLEscape(strings.Join(client.RedirectUris, ",")) +
 		"&response_type=" + responseType +
 		"&state=" + state +
-		"&scope=" + strings.Join(scope, "+")
+		"&scope=" + strings.Join(scope, "+") +
+		"&audience=http://127.0.0.1:4444/oauth2/token"
 }
 
 func (client *Client) InitiateLoginFlow(loginUrl string) error {
@@ -181,14 +182,14 @@ func (client *Client) AddTrustedIssuer(remoteUrl string, idp *oidc.IdentityProvi
 		quotedScopes[i] = fmt.Sprintf("\"%s\"", s)
 	}
 	// NOTE: Can also include "jwks_uri" instead
-	data := []byte(fmt.Sprintf(`{
-		"allow_any_subject": false,
-		"issuer": "%s",
-		"subject": "%s",
-		"expires_at": "%v",
-		"jwk": %v,
-		"scope": [ %s ]
-	}`, idp.Issuer, subject, time.Now().Add(duration).Format(time.RFC3339), string(jwkstr), strings.Join(quotedScopes, ",")))
+	data := []byte(fmt.Sprintf("{"+
+		"\"allow_any_subject\": false,"+
+		"\"issuer\": \"%s\","+
+		"\"subject\": \"%s\","+
+		"\"expires_at\": \"%v\","+
+		"\"jwk\": %v,"+
+		"\"scope\": [ %s ]"+
+		"}", idp.Issuer, subject, time.Now().Add(duration).Format(time.RFC3339), string(jwkstr), strings.Join(quotedScopes, ",")))
 	fmt.Printf("%v\n", string(data))
 
 	req, err := http.NewRequest("POST", remoteUrl, bytes.NewBuffer(data))

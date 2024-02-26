@@ -101,7 +101,7 @@ func Login(config *Config) error {
 	}()
 
 	// use code from response and exchange for bearer token (with ID token)
-	tokenString, err := client.FetchTokenFromAuthenticationServer(
+	bearerToken, err := client.FetchTokenFromAuthenticationServer(
 		code,
 		idp.Endpoints.Token,
 		config.State,
@@ -112,7 +112,7 @@ func Login(config *Config) error {
 
 	// unmarshal data to get id_token and access_token
 	var data map[string]any
-	err = json.Unmarshal([]byte(tokenString), &data)
+	err = json.Unmarshal([]byte(bearerToken), &data)
 	if err != nil || data == nil {
 		return fmt.Errorf("failed to unmarshal token: %v", err)
 	}
@@ -123,30 +123,43 @@ func Login(config *Config) error {
 	if err != nil {
 		fmt.Printf("failed to parse ID token: %v\n", err)
 	} else {
-		fmt.Printf("token: %v\n", idToken)
+		fmt.Printf("id_token: %v\n", idToken)
 		if config.DecodeIdToken {
 			if err != nil {
 				fmt.Printf("failed to decode JWT: %v\n", err)
 			} else {
-				fmt.Printf("id_token.header: %s\nid_token.payload: %s\n", string(idJwtSegments[0]), string(idJwtSegments[1]))
+				for i, segment := range idJwtSegments {
+					// don't print last segment (signatures)
+					if i == len(idJwtSegments)-1 {
+						break
+					}
+					fmt.Printf("%s\n", string(segment))
+				}
 			}
 		}
 	}
 
 	// extract the access token to get the scopes
-	// accessToken := data["access_token"].(string)
-	// accessJwtSegments, err := util.DecodeJwt(accessToken)
-	// if err != nil || len(accessJwtSegments) <=  {
-	// 	fmt.Printf("failed to parse access token: %v\n", err)
-	// } else {
-	// 	if config.DecodeIdToken {
-	// 		if err != nil {
-	// 			fmt.Printf("failed to decode JWT: %v\n", err)
-	// 		} else {
-	// 			fmt.Printf("access_token.header: %s\naccess_token.payload: %s\n", string(accessJwtSegments[0]), string(accessJwtSegments[1]))
-	// 		}
-	// 	}
-	// }
+	accessToken := data["access_token"].(string)
+	accessJwtSegments, err := util.DecodeJwt(accessToken)
+	if err != nil || len(accessJwtSegments) <= 0 {
+		fmt.Printf("failed to parse access token: %v\n", err)
+	} else {
+		fmt.Printf("access_token: %v\n", accessToken)
+		if config.DecodeIdToken {
+			if err != nil {
+				fmt.Printf("failed to decode JWT: %v\n", err)
+			} else {
+				for i, segment := range accessJwtSegments {
+					// don't print last segment (signatures)
+					if i == len(accessJwtSegments)-1 {
+						break
+					}
+					fmt.Printf("%s\n", string(segment))
+				}
+			}
+		}
+	}
 
 	// extract the scope from access token claims
 	// var scope []string
