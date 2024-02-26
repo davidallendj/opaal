@@ -72,7 +72,7 @@ func (client *Client) InitiateLoginFlow(loginUrl string) error {
 	return nil
 }
 
-func (client *Client) FetchFlowData(flowUrl string) (JsonObject, error) {
+func (client *Client) FetchFlowData(flowUrl string) (map[string]any, error) {
 	//kratos: GET /self-service/login/flows?id={flowId}
 
 	// replace {id} in string with actual value
@@ -93,7 +93,7 @@ func (client *Client) FetchFlowData(flowUrl string) (JsonObject, error) {
 		return nil, fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	var flowData JsonObject
+	var flowData map[string]any
 	err = json.Unmarshal(body, &flowData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal flow data: %v", err)
