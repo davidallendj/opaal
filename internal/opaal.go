@@ -6,8 +6,10 @@ type ActionUrls struct {
 	AccessToken    string `yaml:"access-token"`
 	ServerConfig   string `yaml:"server-config"`
 	JwksUri        string `yaml:"jwks_uri"`
+	Login          string `yaml:"login"`
+	LoginFlowId    string `yaml:"login-flow-id"`
 }
 
-func hasRequiredParams(config *Config) bool {
+func HasRequiredParams(config *Config) bool {
 	return config.Client.Id != "" && config.Client.Secret != ""
 }

@@ -19,6 +19,18 @@ func Login(config *Config) error {
 	server := NewServerWithConfig(config)
 	client := NewClientWithConfig(config)
 
+	// initiate the login flow and get a flow ID and CSRF token
+	{
+		err := client.InitiateLoginFlow(config.ActionUrls.Login)
+		if err != nil {
+			return fmt.Errorf("failed to initiate login flow: %v", err)
+		}
+		err = client.FetchCSRFToken(config.ActionUrls.LoginFlowId)
+		if err != nil {
+			return fmt.Errorf("failed to fetch CSRF token: %v", err)
+		}
+	}
+
 	// try and fetch server configuration if provided URL
 	idp := oidc.NewIdentityProvider()
 	if config.ActionUrls.ServerConfig != "" {
@@ -35,7 +47,7 @@ func Login(config *Config) error {
 	}
 
 	// check if all appropriate parameters are set in config
-	if !hasRequiredParams(config) {
+	if !HasRequiredParams(config) {
 		return fmt.Errorf("client ID must be set")
 	}
 
@@ -70,6 +82,24 @@ func Login(config *Config) error {
 		fmt.Printf("client did not initialize\n")
 	}
 
+	// start up another serve in background to listen for success or failures
+	d := make(chan []byte)
+	quit := make(chan bool)
+	var access_token []byte
+	go server.Serve(d)
+	go func() {
+		select {
+		case <-d:
+			fmt.Printf("got access token")
+			quit <- true
+		case <-quit:
+			close(d)
+			close(quit)
+			return
+		default:
+		}
+	}()
+
 	// use code from response and exchange for bearer token (with ID token)
 	tokenString, err := client.FetchTokenFromAuthenticationServer(
 		code,
@@ -93,6 +123,7 @@ func Login(config *Config) error {
 	if err != nil {
 		fmt.Printf("failed to parse ID token: %v\n", err)
 	} else {
+		fmt.Printf("token: %v\n", idToken)
 		if config.DecodeIdToken {
 			if err != nil {
 				fmt.Printf("failed to decode JWT: %v\n", err)
@@ -115,6 +146,18 @@ func Login(config *Config) error {
 	// 			fmt.Printf("access_token.header: %s\naccess_token.payload: %s\n", string(accessJwtSegments[0]), string(accessJwtSegments[1]))
 	// 		}
 	// 	}
+	// }
+
+	// extract the scope from access token claims
+	// var scope []string
+	// var accessJsonPayload map[string]any
+	// var accessJwtPayload []byte = accessJwtSegments[1]
+	// if accessJsonPayload != nil {
+	// 	err := json.Unmarshal(accessJwtPayload, &accessJsonPayload)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to unmarshal JWT: %v", err)
+	// 	}
+	// 	scope = idJsonPayload["scope"].([]string)
 	// }
 
 	// create a new identity with identity and session manager if url is provided
@@ -145,44 +188,47 @@ func Login(config *Config) error {
 		return fmt.Errorf("failed to extract subject from ID token claims")
 	}
 
-	// extract the scope from access token claims
-	// var scope []string
-	// var accessJsonPayload map[string]any
-	// var accessJwtPayload []byte = accessJwtSegments[1]
-	// if accessJsonPayload != nil {
-	// 	err := json.Unmarshal(accessJwtPayload, &accessJsonPayload)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to unmarshal JWT: %v", err)
-	// 	}
-	// 	scope = idJsonPayload["scope"].([]string)
-	// }
-
 	// fetch JWKS and add issuer to authentication server to submit ID token
 	fmt.Printf("Fetching JWKS from authentication server for verification...\n")
 	err = idp.FetchJwk(config.ActionUrls.JwksUri)
 	if err != nil {
-		return fmt.Errorf("failed to fetch JWK: %v\n", err)
+		return fmt.Errorf("failed to fetch JWK: %v", err)
 	} else {
 		fmt.Printf("Attempting to add issuer to authorization server...\n")
 		res, err := client.AddTrustedIssuer(config.ActionUrls.TrustedIssuers, idp, subject, time.Duration(1000), config.Scope)
 		if err != nil {
 			return fmt.Errorf("failed to add trusted issuer: %v", err)
 		}
-		if string(res) == "" {
-			fmt.Printf("Added issuer to authorization server successfully.\n")
-		}
+		fmt.Printf("%v\n", string(res))
+	}
+
+	// try and register a new client with authorization server
+	res, err := client.RegisterOAuthClient("http://127.0.0.1:4445/clients")
+	if err != nil {
+		return fmt.Errorf("failed to register client: %v", err)
+	}
+	fmt.Printf("%v\n", string(res))
+
+	// extract the client info from response
+	var clientData map[string]any
+	err = json.Unmarshal(res, &clientData)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal client data: %v", err)
+	} else {
+		client.Id = clientData["client_id"].(string)
+		client.Secret = clientData["client_secret"].(string)
 	}
 
 	// use ID token/user info to fetch access token from authentication server
 	if config.ActionUrls.AccessToken != "" {
 		fmt.Printf("Fetching access token from authorization server...\n")
-		accessToken, err := client.FetchTokenFromAuthorizationServer(config.ActionUrls.AccessToken, idToken, config.Scope)
+		res, err := client.FetchTokenFromAuthorizationServer(config.ActionUrls.AccessToken, idToken, config.Scope)
 		if err != nil {
 			return fmt.Errorf("failed to fetch access token: %v", err)
 		}
-		fmt.Printf("%s\n", accessToken)
+		fmt.Printf("%s\n", res)
 	}
 
-	fmt.Printf("Success!")
+	d <- access_token
 	return nil
 }

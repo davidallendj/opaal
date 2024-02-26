@@ -92,3 +92,11 @@ func GetCommit() string {
 	}
 	return string(bytes)
 }
+
+func Tokenize(s string) map[string]any {
+	tokens := make(map[string]any)
+
+	// find token enclosed in curly brackets
+
+	return tokens
+}

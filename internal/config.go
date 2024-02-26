@@ -22,6 +22,7 @@ type Config struct {
 	OpenBrowser       bool                  `yaml:"open-browser"`
 	DecodeIdToken     bool                  `yaml:"decode-id-token"`
 	DecodeAccessToken bool                  `yaml:"decode-access-token"`
+	RunOnce           bool                  `yaml:"run-once"`
 }
 
 func NewConfig() Config {
@@ -49,6 +50,7 @@ func NewConfig() Config {
 		OpenBrowser:       false,
 		DecodeIdToken:     false,
 		DecodeAccessToken: false,
+		RunOnce:           true,
 	}
 }
 
