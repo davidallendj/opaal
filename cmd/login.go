@@ -2,7 +2,6 @@ package cmd
 
 import (
 	opaal "davidallendj/opaal/internal"
-	"davidallendj/opaal/internal/util"
 	"fmt"
 	"os"
 
@@ -13,22 +12,14 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Start the login flow",
 	Run: func(cmd *cobra.Command, args []string) {
-		// load config if found
-		if configPath != "" {
-			exists, err := util.PathExists(configPath)
+		for {
+			err := opaal.Login(&config)
 			if err != nil {
-				fmt.Printf("failed to load config")
+				fmt.Printf("%v\n", err)
 				os.Exit(1)
-			} else if exists {
-				config = opaal.LoadConfig(configPath)
-			} else {
-				config = opaal.NewConfig()
+			} else if config.RunOnce {
+				break
 			}
-		}
-		err := opaal.Login(&config)
-		if err != nil {
-			fmt.Print(err)
-			os.Exit(1)
 		}
 	},
 }
@@ -45,5 +36,6 @@ func init() {
 	loginCmd.Flags().BoolVar(&config.OpenBrowser, "open-browser", config.OpenBrowser, "automatically open link in browser")
 	loginCmd.Flags().BoolVar(&config.DecodeIdToken, "decode-id-token", config.DecodeIdToken, "decode and print ID token from identity provider")
 	loginCmd.Flags().BoolVar(&config.DecodeAccessToken, "decore-access-token", config.DecodeAccessToken, "decode and print access token from authorization server")
+	loginCmd.Flags().BoolVar(&config.RunOnce, "once", config.RunOnce, "set whether to run login once and exit")
 	rootCmd.AddCommand(loginCmd)
 }

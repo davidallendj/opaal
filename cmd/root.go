@@ -2,6 +2,7 @@ package cmd
 
 import (
 	opaal "davidallendj/opaal/internal"
+	"davidallendj/opaal/internal/util"
 	"fmt"
 	"os"
 
@@ -20,6 +21,21 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+func initConfig() {
+	// load config if found or create a new one
+	if configPath != "" {
+		exists, err := util.PathExists(configPath)
+		if err != nil {
+			fmt.Printf("failed to load config")
+			os.Exit(1)
+		} else if exists {
+			config = opaal.LoadConfig(configPath)
+		} else {
+			config = opaal.NewConfig()
+		}
+	}
+}
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to start CLI: %s", err)
@@ -28,5 +44,6 @@ func Execute() {
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "set the config path")
 }
