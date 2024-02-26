@@ -77,11 +77,20 @@ services:
   kratos-selfservice-ui-node:
     image: oryd/kratos-selfservice-ui-node:v1.1.0
     environment:
+      - PORT=4455
+      - SECURITY_MODE=
+      - HYDRA_ADMIN_URL=http://127.0.0.1:4445/
       - KRATOS_PUBLIC_URL=http://kratos:4433/
       - KRATOS_BROWSER_URL=http://127.0.0.1:4433/
+      - COOKE_SECRET=1234567890
+      - CSRF_COOKIE_NAME=_OPENCHAMI-CSRF
+      - CSRF_COOKIE_SECRET=OCHAMI1234
+      - COOKIE_SECRET=testTESTtestTESTtestTEST
     networks:
       - internal
     restart: on-failure
+    ports:
+      - "4455:4455"
   kratos:
     depends_on:
       - kratos-migrate

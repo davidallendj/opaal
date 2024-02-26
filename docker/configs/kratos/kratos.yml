@@ -7,6 +7,21 @@ serve:
     base_url: http://127.0.0.1:4433/
     cors:
       enabled: true
+      allowed_origins:
+        - http://127.0.0.1
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Cookie
+        - Content-Type
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
   admin:
     base_url: http://kratos:4434/
 
@@ -27,7 +42,7 @@ selfservice:
             provider: generic
             client_id: 7527e7b4-c96a-4df0-8fc5-00fde18bb65d
             client_secret: gto_cc5uvpb5lsdczkwnbarvwmbpv5kcjwg7nhbc75zt65yrfh2ldenq
-            issuer_url: http://git.towk.local
+            issuer_url: http://127.0.0.1:3000
             mapper_url: "base64://bG9jYWwgY2xhaW1zID0gewogIGVtYWlsX3ZlcmlmaWVkOiBmYWxzZQp9ICsgc3RkLmV4dFZhcignY2xhaW1zJyk7Cgp7CiAgaWRlbnRpdHk6IHsKICAgIHRyYWl0czogewogICAgICAvLyBBbGxvd2luZyB1bnZlcmlmaWVkIGVtYWlsIGFkZHJlc3NlcyBlbmFibGVzIGFjY291bnQKICAgICAgLy8gZW51bWVyYXRpb24gYXR0YWNrcywgZXNwZWNpYWxseSBpZiB0aGUgdmFsdWUgaXMgdXNlZCBmb3IKICAgICAgLy8gZS5nLiB2ZXJpZmljYXRpb24gb3IgYXMgYSBwYXNzd29yZCBsb2dpbiBpZGVudGlmaWVyLgogICAgICAvLwogICAgICAvLyBUaGVyZWZvcmUgd2Ugb25seSByZXR1cm4gdGhlIGVtYWlsIGlmIGl0IChhKSBleGlzdHMgYW5kIChiKSBpcyBtYXJrZWQgdmVyaWZpZWQKICAgICAgLy8gYnkgR2l0TGFiLgogICAgICBbaWYgImVtYWlsIiBpbiBjbGFpbXMgJiYgY2xhaW1zLmVtYWlsX3ZlcmlmaWVkIHRoZW4gImVtYWlsIiBlbHNlIG51bGxdOiBjbGFpbXMuZW1haWwsCiAgICB9LAogIH0sCn0K"
             scope:
               - read_user

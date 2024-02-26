@@ -1,13 +1,17 @@
 serve:
   cookies:
     same_site_mode: Lax
+    names:
+      login_csrf: login
+      consent_csrf: consent
+      session: session
 
 urls:
   self:
     issuer: http://127.0.0.1:4444
-  consent: http://127.0.0.1:3000/consent
-  login: http://127.0.0.1:3000/login
-  logout: http://127.0.0.1:3000/logout
+  consent: http://127.0.0.1:4455/consent
+  login: http://127.0.0.1:4455/login
+  logout: http://127.0.0.1:4455/logout
 
 secrets:
   system:
@@ -20,3 +24,13 @@ oidc:
       - public
     pairwise:
       salt: youReallyNeedToChangeThis
+
+oauth2:
+  grant:
+    jwt:
+      jti_optional: true
+      iat_optional: true
+      max_ttl: 1h
+
+log:
+  leak_sensitive_values: true
