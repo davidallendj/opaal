@@ -100,3 +100,10 @@ func Tokenize(s string) map[string]any {
 
 	return tokens
 }
+
+func QuoteArrayStrings(arr []string) []string {
+	for i, v := range arr {
+		arr[i] = "\"" + v + "\""
+	}
+	return arr
+}

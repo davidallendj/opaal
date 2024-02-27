@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"time"
 )
 
@@ -191,7 +192,7 @@ func Login(config *Config) error {
 
 	// extract the subject from ID token claims
 	var subject string
-	var audience string
+	var audience []string
 	var idJsonPayload map[string]any
 	var idJwtPayload []byte = idJwtSegments[1]
 	if idJwtPayload != nil {
@@ -200,7 +201,13 @@ func Login(config *Config) error {
 			return fmt.Errorf("failed to unmarshal JWT: %v", err)
 		}
 		subject = idJsonPayload["sub"].(string)
-		audience = idJsonPayload["aud"].(string)
+		audType := reflect.ValueOf(idJsonPayload["aud"])
+		switch audType.Kind() {
+		case reflect.String:
+			audience = append(audience, idJsonPayload["aud"].(string))
+		case reflect.Array:
+			audience = idJsonPayload["aud"].([]string)
+		}
 	} else {
 		return fmt.Errorf("failed to extract subject from ID token claims")
 	}
