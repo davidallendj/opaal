@@ -62,6 +62,9 @@ func (client *Client) InitiateLoginFlow(loginUrl string) error {
 
 	// get the flow ID from response
 	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %v", err)
+	}
 
 	var flowData map[string]any
 	err = json.Unmarshal(body, &flowData)
@@ -218,8 +221,10 @@ func (client *Client) RegisterOAuthClient(registerUrl string, audience []string)
 		"scope":                      "openid email profile",
 		"grant_types":                ["client_credentials", "urn:ietf:params:oauth:grant-type:jwt-bearer"],
 		"response_types":             ["token"],
-		"audience":                   [%s]
-	}`, client.Id, client.Secret, strings.Join(audience, ",")))
+		}`, client.Id, client.Secret,
+	// strings.Join(audience, ",")
+	))
+	// "audience":                   [%s]
 
 	req, err := http.NewRequest("POST", registerUrl, bytes.NewBuffer(data))
 	if err != nil {
