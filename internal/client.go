@@ -208,7 +208,7 @@ func (client *Client) AddTrustedIssuer(remoteUrl string, idp *oidc.IdentityProvi
 	return io.ReadAll(res.Body)
 }
 
-func (client *Client) RegisterOAuthClient(registerUrl string) ([]byte, error) {
+func (client *Client) RegisterOAuthClient(registerUrl string, audience string) ([]byte, error) {
 	// hydra endpoint: POST /clients
 	data := []byte(fmt.Sprintf(`{
 		"client_name":                "%s",
@@ -216,8 +216,9 @@ func (client *Client) RegisterOAuthClient(registerUrl string) ([]byte, error) {
 		"token_endpoint_auth_method": "client_secret_post",
 		"scope":                      "openid email profile",
 		"grant_types":                ["client_credentials", "urn:ietf:params:oauth:grant-type:jwt-bearer"],
-		"response_types":             ["token"]
-	}`, client.Id, client.Secret))
+		"response_types":             ["token"],
+		"audience":                   ["%s"]
+	}`, client.Id, client.Secret, audience))
 
 	req, err := http.NewRequest("POST", registerUrl, bytes.NewBuffer(data))
 	if err != nil {

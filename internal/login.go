@@ -73,7 +73,7 @@ func Login(config *Config) error {
 	fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", server.GetListenAddr())
 	code, err := server.WaitForAuthorizationCode(authorizationUrl)
 	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Printf("Server closed.\n")
+		fmt.Printf("\n=========================================\nServer closed.\n=========================================\n\n")
 	} else if err != nil {
 		return fmt.Errorf("failed to start server: %s", err)
 	}
@@ -137,6 +137,7 @@ func Login(config *Config) error {
 				}
 			}
 		}
+		fmt.Println()
 	}
 
 	// extract the access token to get the scopes
@@ -159,6 +160,7 @@ func Login(config *Config) error {
 				}
 			}
 		}
+		fmt.Println()
 	}
 
 	// extract the scope from access token claims
@@ -184,11 +186,12 @@ func Login(config *Config) error {
 		if err != nil {
 			return fmt.Errorf("failed to fetch identities: %v", err)
 		}
-		fmt.Printf("Created new identity successfully.\n")
+		fmt.Printf("Created new identity successfully.\n\n")
 	}
 
 	// extract the subject from ID token claims
 	var subject string
+	var audience string
 	var idJsonPayload map[string]any
 	var idJwtPayload []byte = idJwtSegments[1]
 	if idJwtPayload != nil {
@@ -197,6 +200,7 @@ func Login(config *Config) error {
 			return fmt.Errorf("failed to unmarshal JWT: %v", err)
 		}
 		subject = idJsonPayload["sub"].(string)
+		audience = idJsonPayload["aud"].(string)
 	} else {
 		return fmt.Errorf("failed to extract subject from ID token claims")
 	}
@@ -207,6 +211,7 @@ func Login(config *Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to fetch JWK: %v", err)
 	} else {
+		fmt.Printf("Successfully retrieved JWK from authentication server.\n\n")
 		fmt.Printf("Attempting to add issuer to authorization server...\n")
 		res, err := client.AddTrustedIssuer(config.ActionUrls.TrustedIssuers, idp, subject, time.Duration(1000), config.Scope)
 		if err != nil {
@@ -216,7 +221,8 @@ func Login(config *Config) error {
 	}
 
 	// try and register a new client with authorization server
-	res, err := client.RegisterOAuthClient("http://127.0.0.1:4445/clients")
+	fmt.Printf("Registering new OAuth2 client with authorization server...\n")
+	res, err := client.RegisterOAuthClient("http://127.0.0.1:4445/clients", audience)
 	if err != nil {
 		return fmt.Errorf("failed to register client: %v", err)
 	}
