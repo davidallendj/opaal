@@ -14,7 +14,7 @@ var (
 	config     opaal.Config
 )
 var rootCmd = &cobra.Command{
-	Use:   "oidc",
+	Use:   "opaal",
 	Short: "An experimental OIDC helper tool for handling logins",
 	Run: func(cmd *cobra.Command, args []string) {
 
