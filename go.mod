@@ -3,7 +3,7 @@ module davidallendj/opaal
 go 1.22.0
 
 require (
-	github.com/davidallendj/go-utils v0.0.0-20240228023108-a3401c328af8
+	github.com/davidallendj/go-utils v0.0.0-20240228033512-fd54787e0e90
 	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/lestrrat-go/jwx v1.2.28

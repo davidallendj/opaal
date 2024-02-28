@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/davidallendj/go-utils/util"
+	"github.com/davidallendj/go-utils/pathx"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 func initConfig() {
 	// load config if found or create a new one
 	if configPath != "" {
-		exists, err := util.PathExists(configPath)
+		exists, err := pathx.PathExists(configPath)
 		if err != nil {
 			fmt.Printf("failed to load config")
 			os.Exit(1)
