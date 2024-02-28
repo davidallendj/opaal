@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidallendj/go-utils/httpx"
 	"github.com/davidallendj/go-utils/util"
 	"golang.org/x/net/publicsuffix"
 )
@@ -212,9 +213,24 @@ func (client *Client) AddTrustedIssuer(remoteUrl string, idp *oidc.IdentityProvi
 }
 
 func (client *Client) AuthorizeClient(authorizeUrl string) ([]byte, error) {
-	bytes := []byte{}
+	// encode ID and secret for authorization header basic authentication
+	basicAuth := util.EncodeBase64(
+		fmt.Sprintf("%s:%s",
+			url.QueryEscape(client.Id),
+			url.QueryEscape(client.Secret),
+		),
+	)
+	body := httpx.Body("grant_type=client_credentials&scope=read")
+	headers := httpx.Headers{
+		"Authorization": basicAuth,
+		"Content-Type":  "application/x-www-form-urlencoded",
+	}
+	_, b, err := httpx.MakeHTTPRequest(authorizeUrl, http.MethodPost, body, headers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make HTTP request: %v", err)
+	}
 
-	return bytes, nil
+	return b, nil
 }
 
 func (client *Client) RegisterOAuthClient(registerUrl string, audience []string) ([]byte, error) {
