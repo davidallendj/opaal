@@ -2,10 +2,11 @@ package opaal
 
 import (
 	"davidallendj/opaal/internal/oidc"
-	"davidallendj/opaal/internal/util"
 	"log"
 	"os"
 	"path/filepath"
+
+	goutil "github.com/davidallendj/go-utils/util"
 
 	"gopkg.in/yaml.v2"
 )
@@ -23,11 +24,12 @@ type Config struct {
 	DecodeIdToken     bool                  `yaml:"decode-id-token"`
 	DecodeAccessToken bool                  `yaml:"decode-access-token"`
 	RunOnce           bool                  `yaml:"run-once"`
+	GrantType         string                `yaml:"grant-type"`
 }
 
 func NewConfig() Config {
 	return Config{
-		Version: util.GetCommit(),
+		Version: goutil.GetCommit(),
 		Server: Server{
 			Host: "127.0.0.1",
 			Port: 3333,
@@ -38,7 +40,7 @@ func NewConfig() Config {
 			RedirectUris: []string{""},
 		},
 		IdentityProvider: *oidc.NewIdentityProvider(),
-		State:            util.RandomString(20),
+		State:            goutil.RandomString(20),
 		ResponseType:     "code",
 		Scope:            []string{"openid", "profile", "email"},
 		ActionUrls: ActionUrls{
@@ -51,6 +53,7 @@ func NewConfig() Config {
 		DecodeIdToken:     false,
 		DecodeAccessToken: false,
 		RunOnce:           true,
+		GrantType:         "authorization_code",
 	}
 }
 

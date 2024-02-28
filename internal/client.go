@@ -3,7 +3,6 @@ package opaal
 import (
 	"bytes"
 	"davidallendj/opaal/internal/oidc"
-	"davidallendj/opaal/internal/util"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidallendj/go-utils/util"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -41,7 +41,7 @@ func (client *Client) IsFlowInitiated() bool {
 
 func (client *Client) BuildAuthorizationUrl(authEndpoint string, state string, responseType string, scope []string) string {
 	return authEndpoint + "?" + "client_id=" + client.Id +
-		"&redirect_uri=" + util.URLEscape(strings.Join(client.RedirectUris, ",")) +
+		"&redirect_uri=" + url.QueryEscape(strings.Join(client.RedirectUris, ",")) +
 		"&response_type=" + responseType +
 		"&state=" + state +
 		"&scope=" + strings.Join(scope, "+") +
@@ -148,7 +148,7 @@ func (client *Client) FetchTokenFromAuthenticationServer(code string, remoteUrl 
 
 func (client *Client) FetchTokenFromAuthorizationServer(remoteUrl string, jwt string, scope []string) ([]byte, error) {
 	// hydra endpoint: /oauth/token
-	data := "grant_type=" + util.URLEscape("urn:ietf:params:oauth:grant-type:jwt-bearer") +
+	data := "grant_type=" + url.QueryEscape("urn:ietf:params:oauth:grant-type:jwt-bearer") +
 		"&client_id=" + client.Id +
 		"&client_secret=" + client.Secret +
 		"&scope=" + strings.Join(scope, "+") +
@@ -209,6 +209,12 @@ func (client *Client) AddTrustedIssuer(remoteUrl string, idp *oidc.IdentityProvi
 	defer res.Body.Close()
 
 	return io.ReadAll(res.Body)
+}
+
+func (client *Client) AuthorizeClient(authorizeUrl string) ([]byte, error) {
+	bytes := []byte{}
+
+	return bytes, nil
 }
 
 func (client *Client) RegisterOAuthClient(registerUrl string, audience []string) ([]byte, error) {

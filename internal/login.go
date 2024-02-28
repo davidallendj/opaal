@@ -2,13 +2,14 @@ package opaal
 
 import (
 	"davidallendj/opaal/internal/oidc"
-	"davidallendj/opaal/internal/util"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
 	"time"
+
+	"github.com/davidallendj/go-utils/util"
 )
 
 func Login(config *Config) error {

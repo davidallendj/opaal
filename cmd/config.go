@@ -2,8 +2,9 @@ package cmd
 
 import (
 	opaal "davidallendj/opaal/internal"
-	"davidallendj/opaal/internal/util"
 	"fmt"
+
+	"github.com/davidallendj/go-utils/util"
 
 	"github.com/spf13/cobra"
 )

@@ -1,0 +1,27 @@
+server:  
+  host: 127.0.0.1
+  port: 3333
+client: 
+  id: 7527e7b4-c96a-4df0-8fc5-00fde18bb65d
+  secret: gto_cc5uvpb5lsdczkwnbarvwmbpv5kcjwg7nhbc75zt65yrfh2ldenq
+  redirect-uris:
+    - "http://127.0.0.1:3333/oidc/callback"
+oidc:
+  issuer: "http://git.towk.local:3000/"
+urls:
+  #identities: http://127.0.0.1:4434/admin/identities
+  trusted-issuers: http://127.0.0.1:4445/admin/trust/grants/jwt-bearer/issuers
+  access-token: http://127.0.0.1:4444/oauth2/token
+  server-config: http://git.towk.local:3000/.well-known/openid-configuration
+  jwks_uri: http://git.towk.local:3000/login/oauth/keys
+  login: http://127.0.0.1:4433/self-service/login/api
+  login-flow-id: http://127.0.0.1:4433/self-service/login/flows?id={id}
+state: ""
+response-type: code
+decode-id-token: true
+decode-access-token: true
+run-once: true
+scope:
+- openid
+- profile
+- email
