@@ -129,11 +129,16 @@ func (client *Client) FetchCSRFToken(flowUrl string) error {
 func (client *Client) FetchTokenFromAuthenticationServer(code string, remoteUrl string, state string) ([]byte, error) {
 	data := url.Values{
 		"grant_type":    {"authorization_code"},
-		"code":          {code},
 		"client_id":     {client.Id},
 		"client_secret": {client.Secret},
-		"state":         {state},
 		"redirect_uri":  {strings.Join(client.RedirectUris, ",")},
+	}
+	// add optional params if valid
+	if code != "" {
+		data["code"] = []string{code}
+	}
+	if state != "" {
+		data["state"] = []string{state}
 	}
 	res, err := http.PostForm(remoteUrl, data)
 	if err != nil {
@@ -151,9 +156,16 @@ func (client *Client) FetchTokenFromAuthorizationServer(remoteUrl string, jwt st
 	// hydra endpoint: /oauth/token
 	data := "grant_type=" + url.QueryEscape("urn:ietf:params:oauth:grant-type:jwt-bearer") +
 		"&client_id=" + client.Id +
-		"&client_secret=" + client.Secret +
-		"&scope=" + strings.Join(scope, "+") +
-		"&assertion=" + jwt
+		"&client_secret=" + client.Secret
+
+	// add optional params if valid
+	if jwt != "" {
+		data += "&assertion=" + jwt
+	}
+	if scope != nil || len(scope) > 0 {
+		data += "&scope=" + strings.Join(scope, "+")
+	}
+
 	fmt.Printf("encoded params: %v\n\n", data)
 	req, err := http.NewRequest("POST", remoteUrl, bytes.NewBuffer([]byte(data)))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")

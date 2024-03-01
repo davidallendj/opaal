@@ -16,6 +16,8 @@ urls:
   jwks_uri: http://git.towk.local:3000/login/oauth/keys
   login: http://127.0.0.1:4433/self-service/login/api
   login-flow-id: http://127.0.0.1:4433/self-service/login/flows?id={id}
+  register-client: http://127.0.0.1:4445/clients
+  authorize-client: http://127.0.0.1:4444/oauth2/authorize
 state: ""
 response-type: code
 decode-id-token: true

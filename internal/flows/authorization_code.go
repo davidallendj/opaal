@@ -1,6 +1,7 @@
-package opaal
+package flows
 
 import (
+	opaal "davidallendj/opaal/internal"
 	"davidallendj/opaal/internal/oidc"
 	"encoding/json"
 	"errors"
@@ -12,15 +13,7 @@ import (
 	"github.com/davidallendj/go-utils/util"
 )
 
-func Login(config *Config) error {
-	if config == nil {
-		return fmt.Errorf("config is not valid")
-	}
-
-	// initialize client that will be used throughout login flow
-	server := NewServerWithConfig(config)
-	client := NewClientWithConfig(config)
-
+func AuthorizationCode(config *opaal.Config, server *opaal.Server, client *opaal.Client) error {
 	// initiate the login flow and get a flow ID and CSRF token
 	{
 		err := client.InitiateLoginFlow(config.ActionUrls.Login)
@@ -49,7 +42,7 @@ func Login(config *Config) error {
 	}
 
 	// check if all appropriate parameters are set in config
-	if !HasRequiredParams(config) {
+	if !opaal.HasRequiredParams(config) {
 		return fmt.Errorf("client ID must be set")
 	}
 

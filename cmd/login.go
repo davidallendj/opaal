@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	opaal "davidallendj/opaal/internal"
+	"davidallendj/opaal/internal/flows"
 	"fmt"
 	"os"
 
@@ -13,7 +13,7 @@ var loginCmd = &cobra.Command{
 	Short: "Start the login flow",
 	Run: func(cmd *cobra.Command, args []string) {
 		for {
-			err := opaal.Login(&config)
+			err := flows.Login(&config)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 				os.Exit(1)
@@ -37,5 +37,6 @@ func init() {
 	loginCmd.Flags().BoolVar(&config.DecodeIdToken, "decode-id-token", config.DecodeIdToken, "decode and print ID token from identity provider")
 	loginCmd.Flags().BoolVar(&config.DecodeAccessToken, "decore-access-token", config.DecodeAccessToken, "decode and print access token from authorization server")
 	loginCmd.Flags().BoolVar(&config.RunOnce, "once", config.RunOnce, "set whether to run login once and exit")
+	loginCmd.Flags().StringVar(&config.GrantType, "grant-type", config.GrantType, "set the grant-type/authorization flow")
 	rootCmd.AddCommand(loginCmd)
 }

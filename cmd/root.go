@@ -21,6 +21,18 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to start CLI: %s", err)
+		os.Exit(1)
+	}
+}
+
+func init() {
+	cobra.OnInitialize(initConfig)
+	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "set the config path")
+}
+
 func initConfig() {
 	// load config if found or create a new one
 	if configPath != "" {
@@ -34,16 +46,4 @@ func initConfig() {
 			config = opaal.NewConfig()
 		}
 	}
-}
-
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to start CLI: %s", err)
-		os.Exit(1)
-	}
-}
-
-func init() {
-	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "set the config path")
 }
