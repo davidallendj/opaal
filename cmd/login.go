@@ -1,11 +1,17 @@
 package cmd
 
 import (
-	"davidallendj/opaal/internal/flows"
+	opaal "davidallendj/opaal/internal"
+	"davidallendj/opaal/internal/db"
+	"davidallendj/opaal/internal/oidc"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+)
+
+var (
+	client opaal.Client
 )
 
 var loginCmd = &cobra.Command{
@@ -13,11 +19,32 @@ var loginCmd = &cobra.Command{
 	Short: "Start the login flow",
 	Run: func(cmd *cobra.Command, args []string) {
 		for {
-			err := flows.Login(&config)
+			// try and find client with valid identity provider config
+			var provider *oidc.IdentityProvider
+			for _, c := range config.Authentication.Clients {
+				_, err := db.GetIdentityProvider(config.Options.CachePath, c.Issuer)
+				if err != nil && !config.Options.LocalOnly {
+					fmt.Printf("fetching config from issuer: %v\n", c.Issuer)
+					// try to get info remotely by fetching
+					provider, err = oidc.FetchServerConfig(c.Issuer)
+					if err != nil {
+						continue
+					}
+					client = c
+					break
+				}
+			}
+
+			if provider == nil {
+				fmt.Printf("failed to retrieve provider config\n")
+				os.Exit(1)
+			}
+
+			err := opaal.Login(&config, &client, provider)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 				os.Exit(1)
-			} else if config.RunOnce {
+			} else if config.Options.RunOnce {
 				break
 			}
 		}
@@ -25,18 +52,17 @@ var loginCmd = &cobra.Command{
 }
 
 func init() {
-	loginCmd.Flags().StringVar(&config.Client.Id, "client.id", config.Client.Id, "set the client ID")
-	loginCmd.Flags().StringVar(&config.Client.Secret, "client.secret", config.Client.Secret, "set the client secret")
-	loginCmd.Flags().StringSliceVar(&config.Client.RedirectUris, "redirect-uri", config.Client.RedirectUris, "set the redirect URI")
-	loginCmd.Flags().StringVar(&config.ResponseType, "response-type", config.ResponseType, "set the response-type")
-	loginCmd.Flags().StringSliceVar(&config.Scope, "scope", config.Scope, "set the scopes")
-	loginCmd.Flags().StringVar(&config.State, "state", config.State, "set the state")
-	loginCmd.Flags().StringVar(&config.Server.Host, "host", config.Server.Host, "set the listening host")
-	loginCmd.Flags().IntVar(&config.Server.Port, "port", config.Server.Port, "set the listening port")
-	loginCmd.Flags().BoolVar(&config.OpenBrowser, "open-browser", config.OpenBrowser, "automatically open link in browser")
-	loginCmd.Flags().BoolVar(&config.DecodeIdToken, "decode-id-token", config.DecodeIdToken, "decode and print ID token from identity provider")
-	loginCmd.Flags().BoolVar(&config.DecodeAccessToken, "decore-access-token", config.DecodeAccessToken, "decode and print access token from authorization server")
-	loginCmd.Flags().BoolVar(&config.RunOnce, "once", config.RunOnce, "set whether to run login once and exit")
-	loginCmd.Flags().StringVar(&config.GrantType, "grant-type", config.GrantType, "set the grant-type/authorization flow")
+	loginCmd.Flags().StringVar(&client.Id, "client.id", client.Id, "set the client ID")
+	loginCmd.Flags().StringVar(&client.Secret, "client.secret", client.Secret, "set the client secret")
+	loginCmd.Flags().StringSliceVar(&client.RedirectUris, "client.redirect-uris", client.RedirectUris, "set the redirect URI")
+	loginCmd.Flags().StringSliceVar(&client.Scope, "client.scope", client.Scope, "set the scopes")
+	loginCmd.Flags().StringVar(&config.Server.Host, "server.host", config.Server.Host, "set the listening host")
+	loginCmd.Flags().IntVar(&config.Server.Port, "server.port", config.Server.Port, "set the listening port")
+	loginCmd.Flags().BoolVar(&config.Options.OpenBrowser, "open-browser", config.Options.OpenBrowser, "automatically open link in browser")
+	loginCmd.Flags().BoolVar(&config.Options.DecodeIdToken, "decode-id-token", config.Options.DecodeIdToken, "decode and print ID token from identity provider")
+	loginCmd.Flags().BoolVar(&config.Options.DecodeAccessToken, "decore-access-token", config.Options.DecodeAccessToken, "decode and print access token from authorization server")
+	loginCmd.Flags().BoolVar(&config.Options.RunOnce, "once", config.Options.RunOnce, "set whether to run login once and exit")
+	loginCmd.Flags().StringVar(&config.Options.FlowType, "flow", config.Options.FlowType, "set the grant-type/authorization flow")
+	loginCmd.Flags().BoolVar(&config.Options.LocalOnly, "local", config.Options.LocalOnly, "only fetch identity provider configs stored locally")
 	rootCmd.AddCommand(loginCmd)
 }
