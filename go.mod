@@ -3,12 +3,13 @@ module davidallendj/opaal
 go 1.22.0
 
 require (
-	github.com/davidallendj/go-utils v0.0.0-20240228033512-fd54787e0e90
+	github.com/davidallendj/go-utils v0.0.0-20240302194916-fe292bcf24a4
 	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/chi/v5 v5.0.12
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/lestrrat-go/jwx v1.2.28
 	github.com/spf13/cobra v1.8.0
-	golang.org/x/net v0.10.0
+	golang.org/x/net v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -24,5 +25,6 @@ require (
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.19.0 // indirect
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
 )
