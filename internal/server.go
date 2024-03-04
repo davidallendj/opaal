@@ -12,13 +12,14 @@ import (
 
 type Server struct {
 	*http.Server
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Callback string `yaml:"callback"`
 }
 
-func NewServerWithConfig(config *Config) *Server {
-	host := config.Server.Host
-	port := config.Server.Port
+func NewServerWithConfig(conf *Config) *Server {
+	host := conf.Server.Host
+	port := conf.Server.Port
 	server := &Server{
 		Server: &http.Server{
 			Addr: fmt.Sprintf("%s:%d", host, port),
@@ -37,7 +38,12 @@ func (s *Server) GetListenAddr() string {
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
-func (s *Server) WaitForAuthorizationCode(loginUrl string) (string, error) {
+func (s *Server) WaitForAuthorizationCode(loginUrl string, callback string) (string, error) {
+	// check if callback is set
+	if callback == "" {
+		callback = "/oidc/callback"
+	}
+
 	var code string
 	r := chi.NewRouter()
 	r.Use(middleware.RedirectSlashes)
@@ -53,7 +59,7 @@ func (s *Server) WaitForAuthorizationCode(loginUrl string) (string, error) {
 		loginPage = []byte(strings.ReplaceAll(string(loginPage), "{{loginUrl}}", loginUrl))
 		w.Write(loginPage)
 	})
-	r.HandleFunc("/oidc/callback", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc(callback, func(w http.ResponseWriter, r *http.Request) {
 		// get the code from the OIDC provider
 		if r != nil {
 			code = r.URL.Query().Get("code")
