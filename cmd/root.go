@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	configPath = ""
-	config     opaal.Config
+	confPath = ""
+	config   opaal.Config
 )
 var rootCmd = &cobra.Command{
 	Use:   "opaal",
@@ -30,18 +30,19 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "set the config path")
+	rootCmd.PersistentFlags().StringVar(&confPath, "config", "", "set the config path")
+	rootCmd.PersistentFlags().StringVar(&config.Options.CachePath, "cache", "", "set the cache path")
 }
 
 func initConfig() {
 	// load config if found or create a new one
-	if configPath != "" {
-		exists, err := pathx.PathExists(configPath)
+	if confPath != "" {
+		exists, err := pathx.PathExists(confPath)
 		if err != nil {
 			fmt.Printf("failed to load config")
 			os.Exit(1)
 		} else if exists {
-			config = opaal.LoadConfig(configPath)
+			config = opaal.LoadConfig(confPath)
 		} else {
 			config = opaal.NewConfig()
 		}
