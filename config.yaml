@@ -1,5 +1,5 @@
 version: "0.0.1"
-server:  
+server:
   host: "127.0.0.1"
   port: 3333
   callback: "/oidc/callback"
@@ -12,23 +12,6 @@ providers:
 
 authentication:
   clients:
-    - id: "1135541217802147"
-      secret: "b3a3123e8235de1dbab448369bc3d024"
-      issuer: "https://www.facebook.com"
-      scope:
-        - "openid"
-        - "name"
-        - "email"
-      redirect-uris:
-        - "http://127.0.0.1:3333/oidc/callback"
-    - id: "978b48059dd4916f53b4"
-      secret: "eb54b533eb6afd695e3a1b3f363ab2b29acc7425"
-      issuer: "https://github.com"
-      scope:
-        - "openid"
-        - "profile"
-      redirect-uris:
-        - "http://127.0.0.1:3333/oidc/callback"
     - id: "7527e7b4-c96a-4df0-8fc5-00fde18bb65d"
       secret: "gto_cc5uvpb5lsdczkwnbarvwmbpv5kcjwg7nhbc75zt65yrfh2ldenq"
       name: "forgejo"
