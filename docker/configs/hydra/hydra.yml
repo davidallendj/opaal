@@ -36,3 +36,6 @@ oauth2:
 
 log:
   leak_sensitive_values: true
+
+strategies:
+  access_token: jwt
