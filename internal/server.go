@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/nikolalohinski/gonja/v2"
+	"github.com/nikolalohinski/gonja/v2/exec"
 )
 
 type Server struct {
@@ -52,12 +54,18 @@ func (s *Server) WaitForAuthorizationCode(loginUrl string, callback string) (str
 	})
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		// show login page with notice to redirect
-		loginPage, err := os.ReadFile("pages/index.html")
+		template, err := gonja.FromFile("pages/index.html")
 		if err != nil {
-			fmt.Printf("failed to load login page: %v\n", err)
+			panic(err)
 		}
-		loginPage = []byte(strings.ReplaceAll(string(loginPage), "{{loginUrl}}", loginUrl))
-		w.Write(loginPage)
+
+		data := exec.NewContext(map[string]interface{}{
+			"loginUrl": loginUrl,
+		})
+
+		if err = template.Execute(w, data); err != nil { // Prints: Hello Bob!
+			panic(err)
+		}
 	})
 	r.HandleFunc(callback, func(w http.ResponseWriter, r *http.Request) {
 		// get the code from the OIDC provider
