@@ -22,6 +22,7 @@ type Options struct {
 	FlowType          string `yaml:"flow"`
 	CachePath         string `yaml:"cache"`
 	LocalOnly         bool   `yaml:"local-only"`
+	ForwardToken      bool   `yaml:"forward-token"`
 }
 
 type RequestUrls struct {
@@ -67,6 +68,7 @@ func NewConfig() Config {
 			CachePath:         "opaal.db",
 			FlowType:          "authorization_code",
 			LocalOnly:         false,
+			ForwardToken:      false,
 		},
 		Authentication: Authentication{},
 		Authorization:  Authorization{},
