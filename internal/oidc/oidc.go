@@ -9,14 +9,14 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
 type IdentityProvider struct {
 	Issuer    string    `db:"issuer" json:"issuer" yaml:"issuer"`
 	Endpoints Endpoints `db:"endpoints" json:"endpoints" yaml:"endpoints"`
 	Supported Supported `db:"supported" json:"supported" yaml:"supported"`
-	Key       jwk.Key
+	Jwks      jwk.Set
 }
 
 type Endpoints struct {
@@ -25,7 +25,7 @@ type Endpoints struct {
 	Revocation    string `db:"revocation_endpoint" json:"revocation_endpoint" yaml:"revocation"`
 	Introspection string `db:"introspection_endpoint" json:"introspection_endpoint" yaml:"introspection"`
 	UserInfo      string `db:"userinfo_endpoint" json:"userinfo_endpoint" yaml:"userinfo"`
-	Jwks          string `db:"jwks_uri" json:"jwks_uri" yaml:"jwks_uri"`
+	JwksUri       string `db:"jwks_uri" json:"jwks_uri" yaml:"jwks_uri"`
 }
 type Supported struct {
 	ResponseTypes            []string `db:"response_types_supported" json:"response_types_supported"`
@@ -46,7 +46,7 @@ func NewIdentityProvider() *IdentityProvider {
 		Revocation:    p.Issuer + "/oauth/revocation",
 		Introspection: p.Issuer + "/oauth/introspect",
 		UserInfo:      p.Issuer + "/oauth/userinfo",
-		Jwks:          p.Issuer + "/oauth/discovery/keys",
+		JwksUri:       p.Issuer + "/oauth/discovery/keys",
 	}
 	p.Supported = Supported{
 		ResponseTypes: []string{"code"},
@@ -134,31 +134,18 @@ func FetchServerConfig(issuer string) (*IdentityProvider, error) {
 	return &p, nil
 }
 
-func (p *IdentityProvider) FetchJwk() error {
-	if p.Endpoints.Jwks == "" {
+func (p *IdentityProvider) FetchJwks() error {
+	if p.Endpoints.JwksUri == "" {
 		return fmt.Errorf("JWKS endpoint not set")
 	}
 	// fetch JWKS from identity provider
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	set, err := jwk.Fetch(ctx, p.Endpoints.Jwks)
+	var err error
+	p.Jwks, err = jwk.Fetch(ctx, p.Endpoints.JwksUri)
 	if err != nil {
-		return fmt.Errorf("%v", err)
-	}
-	// get the first JWK from set
-	for it := set.Iterate(context.Background()); it.Next(context.Background()); {
-		pair := it.Pair()
-		p.Key = pair.Value.(jwk.Key)
-		return nil
+		return fmt.Errorf("failed to fetch JWKS: %v", err)
 	}
 
-	return fmt.Errorf("failed to load public key: %v", err)
-}
-
-func (p *IdentityProvider) GetRawJwk() (any, error) {
-	var rawkey any
-	if err := p.Key.Raw(&rawkey); err != nil {
-		return nil, fmt.Errorf("failed to get raw key: %v", err)
-	}
-	return rawkey, nil
+	return nil
 }

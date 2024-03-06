@@ -22,15 +22,22 @@ var loginCmd = &cobra.Command{
 			// try and find client with valid identity provider config
 			var provider *oidc.IdentityProvider
 			for _, c := range config.Authentication.Clients {
+				// try to get identity provider info locally first
 				_, err := db.GetIdentityProvider(config.Options.CachePath, c.Issuer)
 				if err != nil && !config.Options.LocalOnly {
 					fmt.Printf("fetching config from issuer: %v\n", c.Issuer)
 					// try to get info remotely by fetching
 					provider, err = oidc.FetchServerConfig(c.Issuer)
 					if err != nil {
+						fmt.Printf("failed to fetch server config: %v\n", err)
 						continue
 					}
 					client = c
+					// fetch the provider's JWKS
+					err := provider.FetchJwks()
+					if err != nil {
+						fmt.Printf("failed to fetch JWKS: %v\n", err)
+					}
 					break
 				}
 			}
