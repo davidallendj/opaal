@@ -14,20 +14,18 @@ import (
 
 	"github.com/davidallendj/go-utils/httpx"
 	"github.com/davidallendj/go-utils/util"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
-func (client *Client) AddTrustedIssuer(url string, idp *oidc.IdentityProvider, subject string, duration time.Duration) ([]byte, error) {
+func (client *Client) AddTrustedIssuer(url string, issuer string, key jwk.Key, subject string, expires time.Duration) ([]byte, error) {
 	// hydra endpoint: POST /admin/trust/grants/jwt-bearer/issuers
-	if idp == nil {
-		return nil, fmt.Errorf("identity provided is nil")
-	}
-	jwkstr, err := json.Marshal(idp.Key)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal JWK: %v", err)
-	}
 	quotedScopes := make([]string, len(client.Scope))
 	for i, s := range client.Scope {
 		quotedScopes[i] = fmt.Sprintf("\"%s\"", s)
+	}
+	jwkstr, err := json.Marshal(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal JWK: %v", err)
 	}
 	// NOTE: Can also include "jwks_uri" instead
 	data := []byte(fmt.Sprintf("{"+
@@ -37,7 +35,7 @@ func (client *Client) AddTrustedIssuer(url string, idp *oidc.IdentityProvider, s
 		"\"expires_at\": \"%v\","+
 		"\"jwk\": %v,"+
 		"\"scope\": [ %s ]"+
-		"}", idp.Issuer, subject, time.Now().Add(duration).Format(time.RFC3339), string(jwkstr), strings.Join(quotedScopes, ",")))
+		"}", issuer, subject, time.Now().Add(expires).Format(time.RFC3339), string(jwkstr), strings.Join(quotedScopes, ",")))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	// req.Header.Add("X-CSRF-Token", client.CsrfToken.Value)
@@ -53,6 +51,15 @@ func (client *Client) AddTrustedIssuer(url string, idp *oidc.IdentityProvider, s
 	defer res.Body.Close()
 
 	return io.ReadAll(res.Body)
+}
+
+func (client *Client) AddTrustedIssuerWithIdentityProvider(url string, idp *oidc.IdentityProvider, subject string, expires time.Duration) ([]byte, error) {
+	// hydra endpoint: POST /admin/trust/grants/jwt-bearer/issuers
+	key, ok := idp.Jwks.Key(0)
+	if !ok {
+		return nil, fmt.Errorf("no keys found in key set")
+	}
+	return client.AddTrustedIssuer(url, idp.Issuer, key, subject, expires)
 }
 
 func (client *Client) IsOAuthClientRegistered(clientUrl string) (bool, error) {
@@ -206,15 +213,15 @@ func (client *Client) AuthorizeOAuthClient(authorizeUrl string) ([]byte, error) 
 	return b, nil
 }
 
-func (client *Client) PerformTokenGrant(clientUrl string, jwt string) ([]byte, error) {
+func (client *Client) PerformTokenGrant(clientUrl string, encodedJwt string) ([]byte, error) {
 	// hydra endpoint: /oauth/token
 	body := "grant_type=" + url.QueryEscape("urn:ietf:params:oauth:grant-type:jwt-bearer") +
 		"&client_id=" + client.Id +
 		"&client_secret=" + client.Secret +
 		"&redirect_uri=" + url.QueryEscape("http://127.0.0.1:3333/callback")
 	// add optional params if valid
-	if jwt != "" {
-		body += "&assertion=" + jwt
+	if encodedJwt != "" {
+		body += "&assertion=" + encodedJwt
 	}
 	if client.Scope != nil || len(client.Scope) > 0 {
 		body += "&scope=" + strings.Join(client.Scope, "+")
