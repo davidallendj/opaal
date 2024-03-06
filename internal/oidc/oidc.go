@@ -9,33 +9,33 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
 type IdentityProvider struct {
-	Issuer    string    `json:"issuer" yaml:"issuer"`
-	Endpoints Endpoints `json:"endpoints" yaml:"endpoints"`
-	Supported Supported `json:"supported" yaml:"supported"`
-	Key       jwk.Key
+	Issuer    string    `db:"issuer" json:"issuer" yaml:"issuer"`
+	Endpoints Endpoints `db:"endpoints" json:"endpoints" yaml:"endpoints"`
+	Supported Supported `db:"supported" json:"supported" yaml:"supported"`
+	Jwks      jwk.Set
 }
 
 type Endpoints struct {
-	Authorization string `json:"authorization_endpoint" yaml:"authorization"`
-	Token         string `json:"token_endpoint" yaml:"token"`
-	Revocation    string `json:"revocation_endpoint" yaml:"revocation"`
-	Introspection string `json:"introspection_endpoint" yaml:"introspection"`
-	UserInfo      string `json:"userinfo_endpoint" yaml:"userinfo"`
-	Jwks          string `json:"jwks_uri" yaml:"jwks_uri"`
+	Authorization string `db:"authorization_endpoint" json:"authorization_endpoint" yaml:"authorization"`
+	Token         string `db:"token_endpoint" json:"token_endpoint" yaml:"token"`
+	Revocation    string `db:"revocation_endpoint" json:"revocation_endpoint" yaml:"revocation"`
+	Introspection string `db:"introspection_endpoint" json:"introspection_endpoint" yaml:"introspection"`
+	UserInfo      string `db:"userinfo_endpoint" json:"userinfo_endpoint" yaml:"userinfo"`
+	JwksUri       string `db:"jwks_uri" json:"jwks_uri" yaml:"jwks_uri"`
 }
 type Supported struct {
-	ResponseTypes            []string `json:"response_types_supported"`
-	ResponseModes            []string `json:"response_modes_supported"`
-	GrantTypes               []string `json:"grant_types_supported"`
-	TokenEndpointAuthMethods []string `json:"token_endpoint_auth_methods_supported"`
-	SubjectTypes             []string `json:"subject_types_supported"`
-	IdTokenSigningAlgValues  []string `json:"id_token_signing_alg_values_supported"`
-	ClaimTypes               []string `json:"claim_types_supported"`
-	Claims                   []string `json:"claims_supported"`
+	ResponseTypes            []string `db:"response_types_supported" json:"response_types_supported"`
+	ResponseModes            []string `db:"response_modes_supported" json:"response_modes_supported"`
+	GrantTypes               []string `db:"grant_types_supported" json:"grant_types_supported"`
+	TokenEndpointAuthMethods []string `db:"token_endpoint_auth_methods_supported" json:"token_endpoint_auth_methods_supported"`
+	SubjectTypes             []string `db:"subject_types_supported" json:"subject_types_supported"`
+	IdTokenSigningAlgValues  []string `db:"id_token_signing_alg_values_supported" json:"id_token_signing_alg_values_supported"`
+	ClaimTypes               []string `db:"claim_types_supported" json:"claim_types_supported"`
+	Claims                   []string `db:"claims_supported" json:"claims_supported"`
 }
 
 func NewIdentityProvider() *IdentityProvider {
@@ -46,7 +46,7 @@ func NewIdentityProvider() *IdentityProvider {
 		Revocation:    p.Issuer + "/oauth/revocation",
 		Introspection: p.Issuer + "/oauth/introspect",
 		UserInfo:      p.Issuer + "/oauth/userinfo",
-		Jwks:          p.Issuer + "/oauth/discovery/keys",
+		JwksUri:       p.Issuer + "/oauth/discovery/keys",
 	}
 	p.Supported = Supported{
 		ResponseTypes: []string{"code"},
@@ -109,55 +109,43 @@ func (p *IdentityProvider) LoadServerConfig(path string) error {
 	return nil
 }
 
-func (p *IdentityProvider) FetchServerConfig(url string) error {
+func FetchServerConfig(issuer string) (*IdentityProvider, error) {
 	// make a request to a server's openid-configuration
-	req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte{}))
+	req, err := http.NewRequest(http.MethodGet, issuer+"/.well-known/openid-configuration", bytes.NewBuffer([]byte{}))
 	if err != nil {
-		return fmt.Errorf("failed to create a new request: %v", err)
+		return nil, fmt.Errorf("failed to create a new request: %v", err)
 	}
 
 	client := &http.Client{} // temp client to get info and not used in flow
 	res, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to do request: %v", err)
+		return nil, fmt.Errorf("failed to do request: %v", err)
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read response body: %v", err)
+		return nil, fmt.Errorf("failed to read response body: %v", err)
 	}
+	var p IdentityProvider
 	err = p.ParseServerConfig(body)
 	if err != nil {
-		return fmt.Errorf("failed to parse server config: %v", err)
+		return nil, fmt.Errorf("failed to parse server config: %v", err)
 	}
-	return nil
+	return &p, nil
 }
 
-func (p *IdentityProvider) FetchJwk(url string) error {
-	if url == "" {
-		url = p.Endpoints.Jwks
+func (p *IdentityProvider) FetchJwks() error {
+	if p.Endpoints.JwksUri == "" {
+		return fmt.Errorf("JWKS endpoint not set")
 	}
 	// fetch JWKS from identity provider
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	set, err := jwk.Fetch(ctx, url)
+	var err error
+	p.Jwks, err = jwk.Fetch(ctx, p.Endpoints.JwksUri)
 	if err != nil {
-		return fmt.Errorf("%v", err)
-	}
-	// get the first JWK from set
-	for it := set.Iterate(context.Background()); it.Next(context.Background()); {
-		pair := it.Pair()
-		p.Key = pair.Value.(jwk.Key)
-		return nil
+		return fmt.Errorf("failed to fetch JWKS: %v", err)
 	}
 
-	return fmt.Errorf("failed to load public key: %v", err)
-}
-
-func (p *IdentityProvider) GetRawJwk() (any, error) {
-	var rawkey any
-	if err := p.Key.Raw(&rawkey); err != nil {
-		return nil, fmt.Errorf("failed to get raw key: %v", err)
-	}
-	return rawkey, nil
+	return nil
 }

@@ -2,16 +2,16 @@ package cmd
 
 import (
 	opaal "davidallendj/opaal/internal"
-	"davidallendj/opaal/internal/util"
 	"fmt"
 	"os"
 
+	"github.com/davidallendj/go-utils/pathx"
 	"github.com/spf13/cobra"
 )
 
 var (
-	configPath = ""
-	config     opaal.Config
+	confPath = ""
+	config   opaal.Config
 )
 var rootCmd = &cobra.Command{
 	Use:   "opaal",
@@ -19,21 +19,6 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 	},
-}
-
-func initConfig() {
-	// load config if found or create a new one
-	if configPath != "" {
-		exists, err := util.PathExists(configPath)
-		if err != nil {
-			fmt.Printf("failed to load config")
-			os.Exit(1)
-		} else if exists {
-			config = opaal.LoadConfig(configPath)
-		} else {
-			config = opaal.NewConfig()
-		}
-	}
 }
 
 func Execute() {
@@ -45,5 +30,21 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "set the config path")
+	rootCmd.PersistentFlags().StringVar(&confPath, "config", "", "set the config path")
+	rootCmd.PersistentFlags().StringVar(&config.Options.CachePath, "cache", "", "set the cache path")
+}
+
+func initConfig() {
+	// load config if found or create a new one
+	if confPath != "" {
+		exists, err := pathx.PathExists(confPath)
+		if err != nil {
+			fmt.Printf("failed to load config")
+			os.Exit(1)
+		} else if exists {
+			config = opaal.LoadConfig(confPath)
+		} else {
+			config = opaal.NewConfig()
+		}
+	}
 }

@@ -1,277 +1,90 @@
 package opaal
 
 import (
-	"bytes"
-	"davidallendj/opaal/internal/oidc"
-	"davidallendj/opaal/internal/util"
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
-	"strings"
-	"time"
+	"slices"
 
+	"github.com/davidallendj/go-utils/mathx"
 	"golang.org/x/net/publicsuffix"
 )
 
 type Client struct {
 	http.Client
-	Id           string   `yaml:"id"`
-	Secret       string   `yaml:"secret"`
-	RedirectUris []string `yaml:"redirect-uris"`
-	FlowId       string
-	CsrfToken    string
+	Id                      string   `yaml:"id"`
+	Secret                  string   `yaml:"secret"`
+	Name                    string   `yaml:"name"`
+	Description             string   `yaml:"description"`
+	Issuer                  string   `yaml:"issuer"`
+	RegistrationAccessToken string   `yaml:"registration-access-token"`
+	RedirectUris            []string `yaml:"redirect-uris"`
+	Scope                   []string `yaml:"scope"`
+	FlowId                  string
+	CsrfToken               string
+}
+
+func NewClient() *Client {
+	return &Client{}
 }
 
 func NewClientWithConfig(config *Config) *Client {
-	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	// make sure config is valid
+	if config == nil {
+		return nil
+	}
+
+	// make sure we have at least one client
+	clients := config.Authentication.Clients
+	if len(clients) <= 0 {
+		return nil
+	}
+
+	// use the first client found by default
 	return &Client{
-		Id:           config.Client.Id,
-		Secret:       config.Client.Secret,
-		RedirectUris: config.Client.RedirectUris,
-		Client:       http.Client{Jar: jar},
+		Id:           clients[0].Id,
+		Secret:       clients[0].Secret,
+		Name:         clients[0].Name,
+		Issuer:       clients[0].Issuer,
+		Scope:        clients[0].Scope,
+		RedirectUris: clients[0].RedirectUris,
 	}
 }
 
-func (client *Client) IsFlowInitiated() bool {
-	return client.FlowId != ""
+func NewClientWithConfigByIndex(config *Config, index int) *Client {
+	size := len(config.Authentication.Clients)
+	index = mathx.Clamp(index, 0, size)
+	return nil
 }
 
-func (client *Client) BuildAuthorizationUrl(authEndpoint string, state string, responseType string, scope []string) string {
-	return authEndpoint + "?" + "client_id=" + client.Id +
-		"&redirect_uri=" + util.URLEscape(strings.Join(client.RedirectUris, ",")) +
-		"&response_type=" + responseType +
-		"&state=" + state +
-		"&scope=" + strings.Join(scope, "+") +
-		"&audience=http://127.0.0.1:4444/oauth2/token"
-}
-
-func (client *Client) InitiateLoginFlow(loginUrl string) error {
-	// kratos: GET /self-service/login/api
-	req, err := http.NewRequest("GET", loginUrl, bytes.NewBuffer([]byte{}))
-	if err != nil {
-		return fmt.Errorf("failed to make request: %v", err)
-	}
-	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to do request: %v", err)
-	}
-	defer res.Body.Close()
-
-	// get the flow ID from response
-	body, err := io.ReadAll(res.Body)
-
-	var flowData map[string]any
-	err = json.Unmarshal(body, &flowData)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal flow data: %v\n%v", err, string(body))
-	} else {
-		client.FlowId = flowData["id"].(string)
+func NewClientWithConfigByName(config *Config, name string) *Client {
+	index := slices.IndexFunc(config.Authentication.Clients, func(c Client) bool {
+		return c.Name == name
+	})
+	if index >= 0 {
+		return &config.Authentication.Clients[index]
 	}
 	return nil
 }
 
-func (client *Client) FetchFlowData(flowUrl string) (map[string]any, error) {
-	//kratos: GET /self-service/login/flows?id={flowId}
+func NewClientWithConfigByProvider(config *Config, issuer string) *Client {
+	index := slices.IndexFunc(config.Authentication.Clients, func(c Client) bool {
+		return c.Issuer == issuer
+	})
 
-	// replace {id} in string with actual value
-	flowUrl = strings.ReplaceAll(flowUrl, "{id}", client.FlowId)
-	req, err := http.NewRequest("GET", flowUrl, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %v", err)
+	if index >= 0 {
+		return &config.Authentication.Clients[index]
 	}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %v", err)
-	}
-	defer res.Body.Close()
-
-	// get the flow data from response
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	var flowData map[string]any
-	err = json.Unmarshal(body, &flowData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal flow data: %v", err)
-	}
-	return flowData, nil
+	return nil
 }
 
-func (client *Client) FetchCSRFToken(flowUrl string) error {
-	data, err := client.FetchFlowData(flowUrl)
-	if err != nil {
-		return fmt.Errorf("failed to fetch flow data: %v", err)
+func NewClientWithConfigById(config *Config, id string) *Client {
+	index := slices.IndexFunc(config.Authentication.Clients, func(c Client) bool {
+		return c.Id == id
+	})
+	if index >= 0 {
+		return &config.Authentication.Clients[index]
 	}
-
-	// iterate through nodes and extract the CSRF token attribute from the flow data
-	ui := data["ui"].(map[string]any)
-	nodes := ui["nodes"].([]any)
-	for _, node := range nodes {
-		attrs := node.(map[string]any)["attributes"].(map[string]any)
-		name := attrs["name"].(string)
-		if name == "csrf_token" {
-			client.CsrfToken = attrs["value"].(string)
-			return nil
-		}
-	}
-	return fmt.Errorf("failed to extract CSRF token: not found")
-}
-
-func (client *Client) FetchTokenFromAuthenticationServer(code string, remoteUrl string, state string) ([]byte, error) {
-	data := url.Values{
-		"grant_type":    {"authorization_code"},
-		"code":          {code},
-		"client_id":     {client.Id},
-		"client_secret": {client.Secret},
-		"state":         {state},
-		"redirect_uri":  {strings.Join(client.RedirectUris, ",")},
-	}
-	res, err := http.PostForm(remoteUrl, data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ID token: %s", err)
-	}
-	defer res.Body.Close()
-
-	domain, _ := url.Parse("http://127.0.0.1")
-	client.Jar.SetCookies(domain, res.Cookies())
-
-	return io.ReadAll(res.Body)
-}
-
-func (client *Client) FetchTokenFromAuthorizationServer(remoteUrl string, jwt string, scope []string) ([]byte, error) {
-	// hydra endpoint: /oauth/token
-	data := "grant_type=" + util.URLEscape("urn:ietf:params:oauth:grant-type:jwt-bearer") +
-		"&client_id=" + client.Id +
-		"&client_secret=" + client.Secret +
-		"&scope=" + strings.Join(scope, "+") +
-		"&assertion=" + jwt
-	fmt.Printf("encoded params: %v\n\n", data)
-	req, err := http.NewRequest("POST", remoteUrl, bytes.NewBuffer([]byte(data)))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %s", err)
-	}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %v", err)
-	}
-	defer res.Body.Close()
-
-	// set flow ID back to empty string to indicate a completed flow
-	client.FlowId = ""
-
-	return io.ReadAll(res.Body)
-}
-
-func (client *Client) AddTrustedIssuer(remoteUrl string, idp *oidc.IdentityProvider, subject string, duration time.Duration, scope []string) ([]byte, error) {
-	// hydra endpoint: POST /admin/trust/grants/jwt-bearer/issuers
-	if idp == nil {
-		return nil, fmt.Errorf("identity provided is nil")
-	}
-	jwkstr, err := json.Marshal(idp.Key)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal JWK: %v", err)
-	}
-	quotedScopes := make([]string, len(scope))
-	for i, s := range scope {
-		quotedScopes[i] = fmt.Sprintf("\"%s\"", s)
-	}
-	// NOTE: Can also include "jwks_uri" instead
-	data := []byte(fmt.Sprintf("{"+
-		"\"allow_any_subject\": false,"+
-		"\"issuer\": \"%s\","+
-		"\"subject\": \"%s\","+
-		"\"expires_at\": \"%v\","+
-		"\"jwk\": %v,"+
-		"\"scope\": [ %s ]"+
-		"}", idp.Issuer, subject, time.Now().Add(duration).Format(time.RFC3339), string(jwkstr), strings.Join(quotedScopes, ",")))
-	fmt.Printf("%v\n", string(data))
-
-	req, err := http.NewRequest("POST", remoteUrl, bytes.NewBuffer(data))
-	// req.Header.Add("X-CSRF-Token", client.CsrfToken.Value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %v", err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	// req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", idToken))
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %v", err)
-	}
-	defer res.Body.Close()
-
-	return io.ReadAll(res.Body)
-}
-
-func (client *Client) RegisterOAuthClient(registerUrl string, audience []string) ([]byte, error) {
-	// hydra endpoint: POST /clients
-	audience = util.QuoteArrayStrings(audience)
-	data := []byte(fmt.Sprintf(`{
-		"client_name":                "%s",
-		"client_secret":              "%s",
-		"token_endpoint_auth_method": "client_secret_post",
-		"scope":                      "openid email profile",
-		"grant_types":                ["client_credentials", "urn:ietf:params:oauth:grant-type:jwt-bearer"],
-		"response_types":             ["token"],
-		"audience":                   [%s]
-	}`, client.Id, client.Secret, strings.Join(audience, ",")))
-
-	req, err := http.NewRequest("POST", registerUrl, bytes.NewBuffer(data))
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %v", err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	// req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", idToken))
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %v", err)
-	}
-	defer res.Body.Close()
-
-	return io.ReadAll(res.Body)
-}
-
-func (client *Client) CreateIdentity(remoteUrl string, idToken string) ([]byte, error) {
-	// kratos endpoint: /admin/identities
-	data := []byte(`{
-		"schema_id": "preset://email",
-		"traits": {
-			"email": "docs@example.org"
-		}
-	}`)
-
-	req, err := http.NewRequest("POST", remoteUrl, bytes.NewBuffer(data))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create a new request: %v", err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", idToken))
-	// req.Header.Add("X-CSRF-Token", client.CsrfToken.Value)
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %v", err)
-	}
-
-	return io.ReadAll(res.Body)
-}
-
-func (client *Client) FetchIdentities(remoteUrl string) ([]byte, error) {
-	req, err := http.NewRequest("GET", remoteUrl, bytes.NewBuffer([]byte{}))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create a new request: %v", err)
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %v", err)
-	}
-
-	return io.ReadAll(res.Body)
+	return nil
 }
 
 func (client *Client) ClearCookies() {

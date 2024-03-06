@@ -1,8 +1,8 @@
 # OIDC Provider Authentication/Authorization Login (OPAAL)
 
-This is a small, simple, experimental OIDC login helper tool that automates the authorization code lohin flow defined by [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1) for social sign-in with identity providers (IdP) like Google, Facebook, or GitHub. This tool is made to work when your identity provider is separate from your authorization server, and we only need the IdP to receive an ID token. In this document, the identity provider (or authentication server) is strictly the OIDC implementation that identifies the resource owner (ID token) whereas the resource provider (or authorization server) is the OIDC implementation that grants access to a resource (access token). This tool is tested with Ory Kratos and Hydra for user identity and session management and OAuth2/OIDC implementation respectively.
+This is a small, simple, experimental OIDC login helper tool that automates the authorization flows defined by [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1) for social sign-in with identity providers (IdP) like Google, Facebook, or GitHub. This tool is made to work when your identity provider is separate from your authorization server, and we only need the IdP to receive an ID token. In this document, the identity provider (or authentication server) is strictly the OIDC implementation that identifies the resource owner (ID token) whereas the resource provider (or authorization server) is the OIDC implementation that grants access to a resource (access token). OPAAL assumes that the authentication server is external and the authorization server is owned. This tool is tested with Ory Kratos and Hydra for user identity and session management and OAuth2/OIDC implementation respectively.
 
-Note: This tool acts as an OAuth client, contains client secrets, and is not to be exposed to users!
+Note: This tool acts as an OAuth client, contains client secrets, and should not to be exposed to users! It would probably also be a good idea to use a reverse proxy and firewall to protect admin endpoints.
 
 ## Build and Usage
 

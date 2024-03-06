@@ -2,8 +2,9 @@ package cmd
 
 import (
 	opaal "davidallendj/opaal/internal"
-	"davidallendj/opaal/internal/util"
 	"fmt"
+
+	"github.com/davidallendj/go-utils/pathx"
 
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,7 @@ var configCmd = &cobra.Command{
 		// create a new config at all args (paths)
 		for _, path := range args {
 			// check and make sure something doesn't exist first
-			if exists, err := util.PathExists(path); exists || err != nil {
+			if exists, err := pathx.PathExists(path); exists || err != nil {
 				fmt.Printf("file or directory exists\n")
 				continue
 			}

@@ -8,17 +8,20 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/nikolalohinski/gonja/v2"
+	"github.com/nikolalohinski/gonja/v2/exec"
 )
 
 type Server struct {
 	*http.Server
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Callback string `yaml:"callback"`
 }
 
-func NewServerWithConfig(config *Config) *Server {
-	host := config.Server.Host
-	port := config.Server.Port
+func NewServerWithConfig(conf *Config) *Server {
+	host := conf.Server.Host
+	port := conf.Server.Port
 	server := &Server{
 		Server: &http.Server{
 			Addr: fmt.Sprintf("%s:%d", host, port),
@@ -37,7 +40,12 @@ func (s *Server) GetListenAddr() string {
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
-func (s *Server) WaitForAuthorizationCode(loginUrl string) (string, error) {
+func (s *Server) WaitForAuthorizationCode(loginUrl string, callback string) (string, error) {
+	// check if callback is set
+	if callback == "" {
+		callback = "/oidc/callback"
+	}
+
 	var code string
 	r := chi.NewRouter()
 	r.Use(middleware.RedirectSlashes)
@@ -46,14 +54,20 @@ func (s *Server) WaitForAuthorizationCode(loginUrl string) (string, error) {
 	})
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		// show login page with notice to redirect
-		loginPage, err := os.ReadFile("pages/index.html")
+		template, err := gonja.FromFile("pages/index.html")
 		if err != nil {
-			fmt.Printf("failed to load login page: %v\n", err)
+			panic(err)
 		}
-		loginPage = []byte(strings.ReplaceAll(string(loginPage), "{{loginUrl}}", loginUrl))
-		w.Write(loginPage)
+
+		data := exec.NewContext(map[string]interface{}{
+			"loginUrl": loginUrl,
+		})
+
+		if err = template.Execute(w, data); err != nil { // Prints: Hello Bob!
+			panic(err)
+		}
 	})
-	r.HandleFunc("/oidc/callback", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc(callback, func(w http.ResponseWriter, r *http.Request) {
 		// get the code from the OIDC provider
 		if r != nil {
 			code = r.URL.Query().Get("code")
