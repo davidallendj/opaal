@@ -30,10 +30,10 @@ These commands will create a default config, then start the login process. Maybe
 3. Authorize application registered with IdP
 4. IdP redirects to specified redirect URI
 5. Opaal completes the rest of the authorization flow by...
-	- ...making a request to the IdP with the authorization code to receive bearer/ID token
-	- ...making a request to a user identity and management server to create a new identity (optional)
-	- ...making a request to the authorization server to trust the identity provider (optional)
-	- ...making a request to the authorization server to receive an access token (optional)
+	- ...verifying the authenticity of the ID token from identity provider with its JWKS
+	- ...adds itself as a trusted issuer to the authorization server with it's own JWK
+	- ...creates a new signed JWT to send to the authorization server with the `urn:ietf:params:oauth:grant-type:jwt-bearer` grant type
+	- ... returns an access token that can be used by services protected by the authorization server 
 
 *After receiving the ID token, the rest of the flow requires the appropriate URLs to be set to continue.
 
