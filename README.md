@@ -20,7 +20,7 @@ To start the authentication flow, run the following commands:
 
 ```bash
 ./opaal config ./config.yaml
-./opaal login --config config.yaml
+./opaal login  --flow authorization_code --config config.yaml
 ```
 
 These commands will create a default config, then start the login process. Maybe sure to change the config file to match your setup!
@@ -37,6 +37,57 @@ These commands will create a default config, then start the login process. Maybe
 
 *After receiving the ID token, the rest of the flow requires the appropriate URLs to be set to continue.
 
+## Configuration
+
+Here is an example configuration file:
+
+```yaml
+version: "0.0.1"
+server:
+  host: "127.0.0.1"
+  port: 3333
+  callback: "/oidc/callback"
+
+providers:
+  forgejo: "http://127.0.0.1:3000"
+
+authentication:
+  clients:
+    - id: "my_client_id"
+      secret: "my_client_secret"
+      name: "forgejo"
+      issuer: "http://127.0.0.1:3000"
+      scope:
+        - "openid"
+        - "profile"
+        - "read"
+        - "email"
+      redirect-uris:
+        - "http://127.0.0.1:3333/oidc/callback"
+  flows:
+    authorization-code:
+      state: ""
+    client-credentials:
+
+authorization:
+  urls:
+    #identities: http://127.0.0.1:4434/admin/identities
+    trusted-issuers: http://127.0.0.1:4445/admin/trust/grants/jwt-bearer/issuers
+    login: http://127.0.0.1:4433/self-service/login/api
+    clients: http://127.0.0.1:4445/admin/clients
+    authorize: http://127.0.0.1:4444/oauth2/auth
+    register: http://127.0.0.1:4444/oauth2/register
+    token: http://127.0.0.1:4444/oauth2/token
+
+
+options:
+  decode-id-token: true
+  decode-access-token: true
+  run-once: true
+  open-browser: false
+  forward: false
+```
+
 ## Troubleshooting
 
 - Make sure all remote hosts in config file are reachable.
@@ -51,3 +102,7 @@ These commands will create a default config, then start the login process. Maybe
 - Add functional login page example
 - Add unit tests
 - Allow repeat logins
+- Add details about configuration parameters
+- Implement client credentials flow to easily fetch tokens
+- Fix how OAuth clients are managed with the authorization server
+- Fix how the trusted issuer is added to the authorization server
