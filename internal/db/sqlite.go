@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func CreateIdentityProvidersIfNotExists(path string) (*sqlx.DB, error) {
