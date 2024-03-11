@@ -30,7 +30,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&confPath, "config", "", "set the config path")
+	rootCmd.PersistentFlags().StringVarP(&confPath, "config", "c", "", "set the config path")
 	rootCmd.PersistentFlags().StringVar(&config.Options.CachePath, "cache", "", "set the cache path")
 }
 
