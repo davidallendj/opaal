@@ -16,7 +16,7 @@ type IdentityProvider struct {
 	Issuer    string    `db:"issuer" json:"issuer" yaml:"issuer"`
 	Endpoints Endpoints `db:"endpoints" json:"endpoints" yaml:"endpoints"`
 	Supported Supported `db:"supported" json:"supported" yaml:"supported"`
-	Jwks      jwk.Set
+	KeySet    jwk.Set
 }
 
 type Endpoints struct {
@@ -142,7 +142,7 @@ func (p *IdentityProvider) FetchJwks() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var err error
-	p.Jwks, err = jwk.Fetch(ctx, p.Endpoints.JwksUri)
+	p.KeySet, err = jwk.Fetch(ctx, p.Endpoints.JwksUri)
 	if err != nil {
 		return fmt.Errorf("failed to fetch JWKS: %v", err)
 	}

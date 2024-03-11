@@ -1,31 +1,70 @@
 package opaal
 
 import (
-	"davidallendj/opaal/internal/db"
+	cache "davidallendj/opaal/internal/cache/sqlite"
+	"davidallendj/opaal/internal/flows"
+	"davidallendj/opaal/internal/oauth"
 	"davidallendj/opaal/internal/oidc"
+	"errors"
 	"fmt"
+	"net/http"
+	"time"
 )
 
-func Login(config *Config, client *Client, provider *oidc.IdentityProvider) error {
+func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider) error {
 	if config == nil {
 		return fmt.Errorf("config is not valid")
 	}
 
 	// make cache if it's not where expect
-	_, err := db.CreateIdentityProvidersIfNotExists(config.Options.CachePath)
+	_, err := cache.CreateIdentityProvidersIfNotExists(config.Options.CachePath)
 	if err != nil {
 		fmt.Printf("failed to create cache: %v\n", err)
 	}
 
 	if config.Options.FlowType == "authorization_code" {
-		// create a server if doing authorization code flow
-		server := NewServerWithConfig(config)
-		err := AuthorizationCodeWithConfig(config, server, client, provider)
-		if err != nil {
-			fmt.Printf("failed to complete authorization code flow: %v\n", err)
+		// build the authorization URL to redirect user for social sign-in
+		var state = ""
+		if config.Authentication.Flows["authorization-code"]["state"] != "" {
+			state = config.Authentication.Flows["authorization-code"]["state"]
 		}
+
+		// print the authorization URL for sharing
+		var authorizationUrl = client.BuildAuthorizationUrl(provider.Endpoints.Authorization, state)
+		server := NewServerWithConfig(config)
+		fmt.Printf("Login with identity provider:\n\n  %s/login\n  %s\n\n",
+			server.GetListenAddr(), authorizationUrl,
+		)
+
+		var button = MakeButton(authorizationUrl, "Login with "+client.Name)
+
+		// authorize oauth client and listen for callback from provider
+		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", server.GetListenAddr())
+		eps := flows.JwtBearerEndpoints{
+			Token:          config.Authorization.Endpoints.Token,
+			TrustedIssuers: config.Authorization.Endpoints.TrustedIssuers,
+			Register:       config.Authorization.Endpoints.Register,
+		}
+		params := flows.JwtBearerFlowParams{
+			Client:           oauth.NewClient(),
+			IdentityProvider: provider,
+			TrustedIssuer: &oauth.TrustedIssuer{
+				AllowAnySubject: false,
+				Issuer:          server.Addr,
+				Subject:         "opaal",
+				ExpiresAt:       time.Now().Add(time.Second * 3600),
+			},
+			Verbose: config.Options.Verbose,
+		}
+		err = server.Login(button, provider, client, eps, params)
+		if errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("\n=========================================\nServer closed.\n=========================================\n\n")
+		} else if err != nil {
+			return fmt.Errorf("failed to start server: %s", err)
+		}
+
 	} else if config.Options.FlowType == "client_credentials" {
-		err := ClientCredentialsWithConfig(config, client)
+		err := NewClientCredentialsFlowWithConfig(config, client)
 		if err != nil {
 			fmt.Printf("failed to complete client credentials flow: %v", err)
 		}
@@ -34,4 +73,8 @@ func Login(config *Config, client *Client, provider *oidc.IdentityProvider) erro
 	}
 
 	return nil
+}
+
+func MakeButton(url string, text string) string {
+	return "<a href=\"" + url + "\"> " + text + "</a>"
 }

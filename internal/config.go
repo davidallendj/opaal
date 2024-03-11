@@ -1,9 +1,12 @@
 package opaal
 
 import (
+	"davidallendj/opaal/internal/oauth"
 	"log"
 	"os"
 	"path/filepath"
+
+	"davidallendj/opaal/internal/server"
 
 	goutil "github.com/davidallendj/go-utils/util"
 
@@ -15,17 +18,16 @@ type Flows map[string]FlowOptions
 type Providers map[string]string
 
 type Options struct {
-	DecodeIdToken     bool   `yaml:"decode-id-token"`
-	DecodeAccessToken bool   `yaml:"decode-access-token"`
-	RunOnce           bool   `yaml:"run-once"`
-	OpenBrowser       bool   `yaml:"open-browser"`
-	FlowType          string `yaml:"flow"`
-	CachePath         string `yaml:"cache"`
-	LocalOnly         bool   `yaml:"local-only"`
-	ForwardToken      bool   `yaml:"forward-token"`
+	RunOnce         bool   `yaml:"run-once"`
+	OpenBrowser     bool   `yaml:"open-browser"`
+	FlowType        string `yaml:"flow"`
+	CachePath       string `yaml:"cache"`
+	CacheOnly       bool   `yaml:"cache-only"`
+	TokenForwarding bool   `yaml:"token-forwarding"`
+	Verbose         bool   `yaml:"verbose"`
 }
 
-type RequestUrls struct {
+type Endpoints struct {
 	Identities     string `yaml:"identities"`
 	TrustedIssuers string `yaml:"trusted-issuers"`
 	Login          string `yaml:"login"`
@@ -36,17 +38,20 @@ type RequestUrls struct {
 }
 
 type Authentication struct {
-	Clients []Client `yaml:"clients"`
-	Flows   Flows    `yaml:"flows"`
+	Clients        []oauth.Client `yaml:"clients"`
+	Flows          Flows          `yaml:"flows"`
+	TestAllClients bool           `yaml:"test-all"`
+	State          string         `yaml:"state"`
 }
 
 type Authorization struct {
-	RequestUrls RequestUrls `yaml:"urls"`
+	Endpoints Endpoints `yaml:"endpoints"`
+	KeyPath   string    `yaml:"key-path"`
 }
 
 type Config struct {
 	Version        string         `yaml:"version"`
-	Server         Server         `yaml:"server"`
+	Server         server.Server  `yaml:"server"`
 	Providers      Providers      `yaml:"providers"`
 	Options        Options        `yaml:"options"`
 	Authentication Authentication `yaml:"authentication"`
@@ -56,22 +61,25 @@ type Config struct {
 func NewConfig() Config {
 	return Config{
 		Version: goutil.GetCommit(),
-		Server: Server{
+		Server: server.Server{
 			Host: "127.0.0.1",
 			Port: 3333,
 		},
 		Options: Options{
-			DecodeIdToken:     true,
-			DecodeAccessToken: true,
-			RunOnce:           true,
-			OpenBrowser:       false,
-			CachePath:         "opaal.db",
-			FlowType:          "authorization_code",
-			LocalOnly:         false,
-			ForwardToken:      false,
+			RunOnce:         true,
+			OpenBrowser:     false,
+			CachePath:       "opaal.db",
+			FlowType:        "authorization_code",
+			CacheOnly:       false,
+			TokenForwarding: false,
+			Verbose:         false,
 		},
-		Authentication: Authentication{},
-		Authorization:  Authorization{},
+		Authentication: Authentication{
+			TestAllClients: false,
+		},
+		Authorization: Authorization{
+			KeyPath: "./keys",
+		},
 	}
 }
 
@@ -112,10 +120,10 @@ func HasRequiredConfigParams(config *Config) bool {
 	// must have athe requirements to perform login
 	hasClients := len(config.Authentication.Clients) > 0
 	hasServer := config.Server.Host != "" && config.Server.Port != 0 && config.Server.Callback != ""
-	hasEndpoints := config.Authorization.RequestUrls.TrustedIssuers != "" &&
-		config.Authorization.RequestUrls.Login != "" &&
-		config.Authorization.RequestUrls.Clients != "" &&
-		config.Authorization.RequestUrls.Authorize != "" &&
-		config.Authorization.RequestUrls.Token != ""
+	hasEndpoints := config.Authorization.Endpoints.TrustedIssuers != "" &&
+		config.Authorization.Endpoints.Login != "" &&
+		config.Authorization.Endpoints.Clients != "" &&
+		config.Authorization.Endpoints.Authorize != "" &&
+		config.Authorization.Endpoints.Token != ""
 	return hasClients && hasServer && hasEndpoints
 }
