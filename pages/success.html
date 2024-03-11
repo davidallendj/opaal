@@ -1,13 +1,36 @@
 <!DOCTYPE html>
 <html>
-	Success! Here's you access token:
+	<script>
+		function copyText() {
+		// Get the text field
+		var copyText = document.getElementById("token");
 
-	{{access_token}}
-	...
-	You will need this token to access protected services and resources.
-	Make sure to include it in the authorization header when making a HTTP request:
+		// Select the text field
+		copyText.select();
+		copyText.setSelectionRange(0, 99999); // For mobile devices
 
-	curl -k http://smd:27779/hsm/v2/Inventory/RedfishEndpoints -H "authorization: Bearer [access_token]"
+		// Copy the text inside the text field
+		navigator.clipboard.writeText(copyText.value);
 
-	When you done, you can close this page.
+		// Alert the copied text
+		alert("Copied the text: " + copyText.value);
+		}
+	</script>
+	<p>
+		Login successful! Here is your access token: </br>
+	<br>
+		<!-- The text field -->
+		<input type="text" value="{{accessToken}}" style="width: 350px" id="token" readonly>
+
+		<!-- The button used to copy the text -->
+		<button onclick="copyText()">Copy</button>
+	<br><br>
+		You will need this token to access protected services and resources.<br>
+		Make sure to include it in the authorization header if you are making a HTTP request.<br><br>
+	<pre>
+	curl -k http://smd:27779/hsm/v2/Inventory/RedfishEndpoints -H "Authorization: Bearer [access_token]"
+	</pre>
+		
+	When you done, you can close this page.<br>
+	</p>
 </html>
