@@ -49,6 +49,10 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	})
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		// add target if query exists
+		if r != nil {
+			target = r.URL.Query().Get("target")
+		}
 		// show login page with notice to redirect
 		template, err := gonja.FromFile("pages/index.html")
 		if err != nil {
@@ -129,6 +133,7 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		if err = template.Execute(w, data); err != nil { // Prints: Hello Bob!
 			panic(err)
 		}
+		// try and send access code to target if set
 		if target != "" {
 			httpx.MakeHttpRequest(target, http.MethodPost, []byte(accessToken), httpx.Headers{})
 		}
