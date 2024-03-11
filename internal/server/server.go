@@ -136,7 +136,7 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		// try and send access code to target if set
 		if target != "" {
 			fmt.Printf("Send access token to target: %s\n", target)
-			_, _, err := httpx.MakeHttpRequest(target, http.MethodPost, []byte(accessToken), httpx.Headers{})
+			_, _, err := httpx.MakeHttpRequest(target, http.MethodPost, nil, httpx.Headers{"access_token": accessToken})
 			if err != nil {
 				fmt.Printf("failed to make request: %v", err)
 			}
