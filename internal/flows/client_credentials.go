@@ -1,6 +1,7 @@
-package opaal
+package flows
 
 import (
+	"davidallendj/opaal/internal/oauth"
 	"fmt"
 )
 
@@ -15,9 +16,9 @@ type ClientCredentialsFlowEndpoints struct {
 	Token     string
 }
 
-func ClientCredentials(eps ClientCredentialsFlowEndpoints, client *Client) error {
+func NewClientCredentialsFlow(eps ClientCredentialsFlowEndpoints, client *oauth.Client) error {
 	// register a new OAuth 2 client with authorization srever
-	_, err := client.CreateOAuthClient(eps.Create, nil)
+	_, err := client.CreateOAuthClient(eps.Create)
 	if err != nil {
 		return fmt.Errorf("failed to register OAuth client: %v", err)
 	}
@@ -36,13 +37,4 @@ func ClientCredentials(eps ClientCredentialsFlowEndpoints, client *Client) error
 
 	fmt.Printf("token: %v\n", string(res))
 	return nil
-}
-
-func ClientCredentialsWithConfig(config *Config, client *Client) error {
-	eps := ClientCredentialsFlowEndpoints{
-		Create:    config.Authorization.RequestUrls.Clients,
-		Authorize: config.Authorization.RequestUrls.Authorize,
-		Token:     config.Authorization.RequestUrls.Token,
-	}
-	return ClientCredentials(eps, client)
 }

@@ -1,65 +1,41 @@
-package opaal
+package oauth
 
 import (
-	"bytes"
-	"davidallendj/opaal/internal/oidc"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/davidallendj/go-utils/httpx"
 	"github.com/davidallendj/go-utils/util"
-	"github.com/lestrrat-go/jwx/v2/jwk"
+	"golang.org/x/net/publicsuffix"
 )
 
-func (client *Client) AddTrustedIssuer(url string, issuer string, key jwk.Key, subject string, expires time.Duration) ([]byte, error) {
-	// hydra endpoint: POST /admin/trust/grants/jwt-bearer/issuers
-	quotedScopes := make([]string, len(client.Scope))
-	for i, s := range client.Scope {
-		quotedScopes[i] = fmt.Sprintf("\"%s\"", s)
-	}
-	jwkstr, err := json.Marshal(key)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal JWK: %v", err)
-	}
-	// NOTE: Can also include "jwks_uri" instead
-	data := []byte(fmt.Sprintf("{"+
-		"\"allow_any_subject\": false,"+
-		"\"issuer\": \"%s\","+
-		"\"subject\": \"%s\","+
-		"\"expires_at\": \"%v\","+
-		"\"jwk\": %v,"+
-		"\"scope\": [ %s ]"+
-		"}", issuer, subject, time.Now().Add(expires).Format(time.RFC3339), string(jwkstr), strings.Join(quotedScopes, ",")))
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-	// req.Header.Add("X-CSRF-Token", client.CsrfToken.Value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %v", err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	// req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", idToken))
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %v", err)
-	}
-	defer res.Body.Close()
-
-	return io.ReadAll(res.Body)
+type Client struct {
+	http.Client
+	Id                      string   `db:"id" yaml:"id"`
+	Secret                  string   `db:"secret" yaml:"secret"`
+	Name                    string   `db:"name" yaml:"name"`
+	Description             string   `db:"description" yaml:"description"`
+	Issuer                  string   `db:"issuer" yaml:"issuer"`
+	RegistrationAccessToken string   `db:"registration_access_token" yaml:"registration-access-token"`
+	RedirectUris            []string `db:"redirect_uris" yaml:"redirect-uris"`
+	Scope                   []string `db:"scope" yaml:"scope"`
+	Audience                []string `db:"audience" yaml:"audience"`
+	FlowId                  string
+	CsrfToken               string
 }
 
-func (client *Client) AddTrustedIssuerWithIdentityProvider(url string, idp *oidc.IdentityProvider, subject string, expires time.Duration) ([]byte, error) {
-	// hydra endpoint: POST /admin/trust/grants/jwt-bearer/issuers
-	key, ok := idp.Jwks.Key(0)
-	if !ok {
-		return nil, fmt.Errorf("no keys found in key set")
-	}
-	return client.AddTrustedIssuer(url, idp.Issuer, key, subject, expires)
+func NewClient() *Client {
+	return &Client{}
+}
+
+func (client *Client) ClearCookies() {
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	client.Jar = jar
 }
 
 func (client *Client) IsOAuthClientRegistered(clientUrl string) (bool, error) {
@@ -107,9 +83,9 @@ func (client *Client) GetOAuthClient(clientUrl string) error {
 	return nil
 }
 
-func (client *Client) CreateOAuthClient(registerUrl string, audience []string) ([]byte, error) {
+func (client *Client) CreateOAuthClient(registerUrl string) ([]byte, error) {
 	// hydra endpoint: POST /clients
-	audience = util.QuoteArrayStrings(audience)
+	audience := util.QuoteArrayStrings(client.Audience)
 	body := httpx.Body(fmt.Sprintf(`{
 		"client_id":                  "%s",
 		"client_name":                "%s",
@@ -151,9 +127,12 @@ func (client *Client) CreateOAuthClient(registerUrl string, audience []string) (
 	return b, err
 }
 
-func (client *Client) RegisterOAuthClient(registerUrl string, audience []string) ([]byte, error) {
+func (client *Client) RegisterOAuthClient(registerUrl string) ([]byte, error) {
 	// hydra endpoint: POST /oauth2/register
-	audience = util.QuoteArrayStrings(audience)
+	if registerUrl == "" {
+		return nil, fmt.Errorf("no URL provided")
+	}
+	audience := util.QuoteArrayStrings(client.Audience)
 	body := httpx.Body(fmt.Sprintf(`{
 		"client_name":                "opaal",
 		"token_endpoint_auth_method": "client_secret_post",
