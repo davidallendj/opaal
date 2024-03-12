@@ -1,4 +1,4 @@
-package db
+package cache
 
 import (
 	"davidallendj/opaal/internal/oidc"

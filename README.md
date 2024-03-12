@@ -23,9 +23,17 @@ To start the authentication flow, run the following commands:
 ./opaal login  --flow authorization_code --config config.yaml
 ```
 
-These commands will create a default config, then start the login process. Maybe sure to change the config file to match your setup!
+These commands will create a default config, then start the login process. Maybe sure to change the config file to match your setup! The tool has been tested and confirmed to work with the following identity providers so far:
+
+- [Gitlab](https://about.gitlab.com/)
+- [Forgejo](https://forgejo.org/) (fork of Gitea)
+
+### Authorization Code Flow
+
+`opaal` has the ability to completely execute the authorization code and return an access token from an authorization server using social sign-in. The process works as follows:
 
 1. Click the authorization link or navigate to the hosted endpoint in your browser (127.0.0.1:3333 by default)
+	- Alternatively, you can use a link produced 
 2. Login using identity provider credentials
 3. Authorize application registered with IdP
 4. IdP redirects to specified redirect URI
@@ -36,6 +44,11 @@ These commands will create a default config, then start the login process. Maybe
 	- ... returns an access token that can be used by services protected by the authorization server 
 
 *After receiving the ID token, the rest of the flow requires the appropriate URLs to be set to continue.
+
+### Client Credentials Flow
+
+`opaal` also has
+
 
 ## Configuration
 
@@ -106,3 +119,5 @@ options:
 - Implement client credentials flow to easily fetch tokens
 - Fix how OAuth clients are managed with the authorization server
 - Fix how the trusted issuer is added to the authorization server
+- Allow signing JWTs by supplying key pair
+- Separate `jwt_bearer` grant type from the authorization code flow

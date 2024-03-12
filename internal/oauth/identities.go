@@ -1,4 +1,4 @@
-package opaal
+package oauth
 
 import (
 	"fmt"
