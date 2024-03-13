@@ -76,5 +76,10 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 }
 
 func MakeButton(url string, text string) string {
-	return "<a href=\"" + url + "\"> " + text + "</a>"
+	html := "<input type=\"button\" "
+	html += "class=\"button\" "
+	html += fmt.Sprintf("onclick=\"window.location.href='%s';\" ", url)
+	html += fmt.Sprintf("value=\"%s\"", text)
+	return html
+	// return "<a href=\"" + url + "\"> " + text + "</a>"
 }
