@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/davidallendj/go-utils/httpx"
 	"github.com/go-chi/chi/v5"
@@ -71,7 +70,9 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		// get the code from the OIDC provider
 		if r != nil {
 			code = r.URL.Query().Get("code")
-			fmt.Printf("Authorization code: %v\n", code)
+			if params.Verbose {
+				fmt.Printf("Authorization code: %v\n", code)
+			}
 
 			// use code from response and exchange for bearer token (with ID token)
 			bearerToken, err := client.FetchTokenFromAuthenticationServer(
@@ -120,7 +121,9 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		http.Redirect(w, r, "/success", http.StatusSeeOther)
 	})
 	r.HandleFunc("/success", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("Serving success page.\n")
+		if params.Verbose {
+			fmt.Printf("Serving success page.\n")
+		}
 		template, err := gonja.FromFile("pages/success.html")
 		if err != nil {
 			panic(err)
@@ -135,7 +138,9 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		}
 		// try and send access code to target if set
 		if target != "" {
-			fmt.Printf("Send access token to target: %s\n", target)
+			if params.Verbose {
+				fmt.Printf("Sending access token to target: %s\n", target)
+			}
 			_, _, err := httpx.MakeHttpRequest(target, http.MethodPost, nil, httpx.Headers{"access_token": accessToken})
 			if err != nil {
 				fmt.Printf("failed to make request: %v", err)
@@ -143,30 +148,22 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		}
 	})
 	r.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("Serving error page.")
-		errorPage, err := os.ReadFile("pages/error.html")
-		if err != nil {
-			fmt.Printf("failed to load error page: %v\n", err)
+		if params.Verbose {
+			fmt.Printf("Serving error page.")
 		}
-		w.Write(errorPage)
+		template, err := gonja.FromFile("pages/success.html")
+		if err != nil {
+			panic(err)
+		}
+
+		data := exec.NewContext(map[string]interface{}{
+			"index": fmt.Sprintf("<a href=\"%s\">try logging in again?</a>", s.Addr),
+		})
+		if err = template.Execute(w, data); err != nil { // Prints: Hello Bob!
+			panic(err)
+		}
 	})
-	s.Handler = r
-
-	return s.ListenAndServe()
-}
-
-func (s *Server) Serve(data chan []byte) error {
-	output, ok := <-data
-	if !ok {
-		return fmt.Errorf("failed to receive data")
-	}
-
-	fmt.Printf("Received data: %v\n", string(output))
-	// http.HandleFunc("/redirect", func(w http.ResponseWriter, r *http.Request) {
-
-	// })
-	r := chi.NewRouter()
-
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("./pages/static"))))
 	s.Handler = r
 	return s.ListenAndServe()
 }
