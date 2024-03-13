@@ -1,0 +1,30 @@
+body{
+	font: 100% arial, sans-serif; 
+	text-align: center;
+	background-color:seashell;
+}
+div#wrapper{
+	border: 1px solid gray;
+	margin: auto;
+	margin-top: 32px;
+	width: 80%;
+	background-color:snow;
+	padding:24px;
+	box-shadow: 0px 0px 12px 4px;
+	box-sizing: content-box;
+}
+button, .button {
+	background-color: #000000;
+	color: #FFFFFF;
+	padding: 10px;
+	border-radius: 10px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	margin:10px
+}
+input[type=text] {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+}
