@@ -8,8 +8,6 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/davidallendj/go-utils v0.0.0-20240310034007-5fa47be83de0 h1:nWyYmigcFeC2iCDxylGv3FFLSfh1so00iUYVzwZUJP4=
-github.com/davidallendj/go-utils v0.0.0-20240310034007-5fa47be83de0/go.mod h1:kiv3jEnBbeueMNNJclaMMJULL/tjqJ6wc136d+uxqSs=
 github.com/davidallendj/go-utils v0.0.0-20240310194826-5a1300f3bcbf h1:gY89rDLnc+70S0JcyHoPGU+XFpMwY1iVYNQzdC/qAHc=
 github.com/davidallendj/go-utils v0.0.0-20240310194826-5a1300f3bcbf/go.mod h1:kiv3jEnBbeueMNNJclaMMJULL/tjqJ6wc136d+uxqSs=
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 h1:8UrgZ3GkP4i/CLijOJx79Yu+etlyjdBU4sfcs2WYQMs=
