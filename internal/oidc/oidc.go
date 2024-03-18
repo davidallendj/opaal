@@ -20,6 +20,7 @@ type IdentityProvider struct {
 }
 
 type Endpoints struct {
+	Config        string `db:"config_endpoint" json:"config_endpoint" yaml:"config"`
 	Authorization string `db:"authorization_endpoint" json:"authorization_endpoint" yaml:"authorization"`
 	Token         string `db:"token_endpoint" json:"token_endpoint" yaml:"token"`
 	Revocation    string `db:"revocation_endpoint" json:"revocation_endpoint" yaml:"revocation"`
@@ -103,6 +104,30 @@ func (p *IdentityProvider) LoadServerConfig(path string) error {
 		return fmt.Errorf("failed to read server config: %v", err)
 	}
 	err = p.ParseServerConfig(data)
+	if err != nil {
+		return fmt.Errorf("failed to parse server config: %v", err)
+	}
+	return nil
+}
+
+func (p *IdentityProvider) FetchServerConfig() error {
+	// make a request to a server's openid-configuration
+	req, err := http.NewRequest(http.MethodGet, p.Issuer+"/.well-known/openid-configuration", bytes.NewBuffer([]byte{}))
+	if err != nil {
+		return fmt.Errorf("failed to create a new request: %v", err)
+	}
+
+	client := &http.Client{} // temp client to get info and not used in flow
+	res, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to do request: %v", err)
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %v", err)
+	}
+	err = p.ParseServerConfig(body)
 	if err != nil {
 		return fmt.Errorf("failed to parse server config: %v", err)
 	}

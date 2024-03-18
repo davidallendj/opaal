@@ -40,23 +40,33 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 
 		// authorize oauth client and listen for callback from provider
 		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", server.GetListenAddr())
-		eps := flows.JwtBearerEndpoints{
-			Token:          config.Authorization.Endpoints.Token,
-			TrustedIssuers: config.Authorization.Endpoints.TrustedIssuers,
-			Register:       config.Authorization.Endpoints.Register,
-		}
-		params := flows.JwtBearerFlowParams{
-			Client:           oauth.NewClient(),
-			IdentityProvider: provider,
-			TrustedIssuer: &oauth.TrustedIssuer{
-				AllowAnySubject: false,
-				Issuer:          server.Addr,
-				Subject:         "opaal",
-				ExpiresAt:       time.Now().Add(time.Second * 3600),
+		params := server.ServerParams{
+			AuthProvider: &oidc.IdentityProvider{
+				Issuer: config.Authorization.Endpoints.Issuer,
+				Endpoints: oidc.Endpoints{
+					Config:  config.Authorization.Endpoints.Config,
+					JwksUri: config.Authorization.Endpoints.JwksUri,
+				},
 			},
 			Verbose: config.Options.Verbose,
+			JwtBearerFlowEndpoints: flows.JwtBearerEndpoints{
+				Token:          config.Authorization.Endpoints.Token,
+				TrustedIssuers: config.Authorization.Endpoints.TrustedIssuers,
+				Register:       config.Authorization.Endpoints.Register,
+			},
+			JwtBearerFlowParams: flows.JwtBearerFlowParams{
+				Client:           oauth.NewClient(),
+				IdentityProvider: provider,
+				TrustedIssuer: &oauth.TrustedIssuer{
+					AllowAnySubject: false,
+					Issuer:          server.Addr,
+					Subject:         "opaal",
+					ExpiresAt:       time.Now().Add(config.Authorization.TokenDuration),
+				},
+				Verbose: config.Options.Verbose,
+			},
 		}
-		err = server.Login(button, provider, client, eps, params)
+		err = server.Login(button, provider, client, params)
 		if errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("\n=========================================\nServer closed.\n=========================================\n\n")
 		} else if err != nil {

@@ -5,12 +5,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"davidallendj/opaal/internal/server"
 
 	goutil "github.com/davidallendj/go-utils/util"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type FlowOptions map[string]string
@@ -18,17 +19,19 @@ type Flows map[string]FlowOptions
 type Providers map[string]string
 
 type Options struct {
-	RunOnce         bool   `yaml:"run-once"`
-	OpenBrowser     bool   `yaml:"open-browser"`
-	FlowType        string `yaml:"flow"`
-	CachePath       string `yaml:"cache"`
-	CacheOnly       bool   `yaml:"cache-only"`
-	TokenForwarding bool   `yaml:"token-forwarding"`
-	Refresh         bool   `yaml:"refresh"`
-	Verbose         bool   `yaml:"verbose"`
+	RunOnce     bool   `yaml:"run-once"`
+	OpenBrowser bool   `yaml:"open-browser"`
+	FlowType    string `yaml:"flow"`
+	CachePath   string `yaml:"cache"`
+	CacheOnly   bool   `yaml:"cache-only"`
+	Refresh     bool   `yaml:"refresh"`
+	Verbose     bool   `yaml:"verbose"`
 }
 
 type Endpoints struct {
+	Issuer         string `yaml:"issuer"`
+	Config         string `yaml:"config"`
+	JwksUri        string `yaml:"jwks"`
 	Identities     string `yaml:"identities"`
 	TrustedIssuers string `yaml:"trusted-issuers"`
 	Login          string `yaml:"login"`
@@ -46,8 +49,10 @@ type Authentication struct {
 }
 
 type Authorization struct {
-	Endpoints Endpoints `yaml:"endpoints"`
-	KeyPath   string    `yaml:"key-path"`
+	Endpoints       Endpoints     `yaml:"endpoints"`
+	KeyPath         string        `yaml:"key-path"`
+	TokenDuration   time.Duration `yaml:"token-duration"`
+	TokenForwarding bool          `yaml:"token-forwarding"`
 }
 
 type Config struct {
@@ -67,20 +72,21 @@ func NewConfig() Config {
 			Port: 3333,
 		},
 		Options: Options{
-			RunOnce:         true,
-			OpenBrowser:     false,
-			CachePath:       "opaal.db",
-			FlowType:        "authorization_code",
-			CacheOnly:       false,
-			TokenForwarding: false,
-			Refresh:         true,
-			Verbose:         false,
+			RunOnce:     true,
+			OpenBrowser: false,
+			CachePath:   "opaal.db",
+			FlowType:    "authorization_code",
+			CacheOnly:   false,
+			Refresh:     true,
+			Verbose:     false,
 		},
 		Authentication: Authentication{
 			TestAllClients: false,
 		},
 		Authorization: Authorization{
-			KeyPath: "./keys",
+			KeyPath:         "./keys",
+			TokenForwarding: false,
+			TokenDuration:   1 * time.Hour,
 		},
 	}
 }

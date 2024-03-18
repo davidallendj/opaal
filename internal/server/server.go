@@ -23,6 +23,13 @@ type Server struct {
 	State    string `yaml:"state"`
 }
 
+type ServerParams struct {
+	AuthProvider       *oidc.IdentityProvider
+	Verbose            bool
+	JwtBearerEndpoints flows.JwtBearerEndpoints
+	JwtBearerParams    flows.JwtBearerFlowParams
+}
+
 func (s *Server) SetListenAddr(host string, port int) {
 	s.Addr = s.GetListenAddr()
 }
@@ -31,7 +38,7 @@ func (s *Server) GetListenAddr() string {
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
-func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *oauth.Client, eps flows.JwtBearerEndpoints, params flows.JwtBearerFlowParams) error {
+func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *oauth.Client, params ServerParams) error {
 	var target = ""
 
 	// check if callback is set
@@ -66,7 +73,41 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 			panic(err)
 		}
 	})
-	r.HandleFunc("/key", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/keys", func(w http.ResponseWriter, r *http.Request) {
+		var (
+			p    = params.AuthProvider
+			jwks []byte
+		)
+		// try and get the JWKS from param first
+		if p.Endpoints.JwksUri != "" {
+			err := p.FetchJwks()
+			if err != nil {
+				fmt.Printf("failed to fetch keys using JWKS url...trying to fetch config and try again...\n")
+			}
+			jwks, err = json.Marshal(p.KeySet)
+			if err != nil {
+				fmt.Printf("failed to marshal JWKS: %v\n", err)
+			}
+		} else if p.Endpoints.Config != "" && jwks == nil {
+			// otherwise, try and fetch the whole config and try again
+			err := p.FetchServerConfig()
+			if err != nil {
+				fmt.Printf("failed to fetch server config: %v\n", err)
+			}
+			err = p.FetchJwks()
+			if err != nil {
+				fmt.Printf("failed to fetch JWKS after fetching server config: %v\n", err)
+			}
+
+		}
+
+		// forward the JWKS from the authorization server
+		if jwks == nil {
+			fmt.Printf("no JWKS was fetched from authorization server\n")
+			http.Redirect(w, r, "/error", http.StatusInternalServerError)
+			return
+		}
+		w.Write(jwks)
 
 	})
 	r.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
@@ -81,12 +122,13 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 
 		// return token to target if set or the sending client
 		returnTarget := r.URL.Query().Get("target")
-		if returnTarget != "" {
-
-		} else {
-			host := r.URL.Host
-			httpx.MakeHttpRequest(host, http.MethodPost, httpx.Body{}, httpx.Headers{})
-
+		if returnTarget == "" {
+			returnTarget = r.URL.Host
+		}
+		_, _, err = httpx.MakeHttpRequest(returnTarget, http.MethodPost, httpx.Body{}, httpx.Headers{})
+		if err != nil {
+			fmt.Printf("failed to make request")
+			http.Redirect(w, r, "/error", http.StatusInternalServerError)
 		}
 	})
 	r.HandleFunc(s.Callback, func(w http.ResponseWriter, r *http.Request) {
@@ -127,12 +169,10 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 				return
 			}
 
-			// TODO: extract scopes from ID token and add to trusted issuer
-
 			// complete JWT bearer flow to receive access token from authorization server
 			// fmt.Printf("bearer: %v\n", string(bearerToken))
-			params.IdToken = data["id_token"].(string)
-			accessToken, err = flows.NewJwtBearerFlow(eps, params)
+			params.JwtBearerParams.IdToken = data["id_token"].(string)
+			accessToken, err = flows.NewJwtBearerFlow(params.JwtBearerEndpoints, params.JwtBearerParams)
 			if err != nil {
 				fmt.Printf("failed to complete JWT bearer flow: %v\n", err)
 				w.Header().Add("Content-type", "text/html")
