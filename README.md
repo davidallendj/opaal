@@ -91,6 +91,9 @@ authorization:
     authorize: http://127.0.0.1:4444/oauth2/auth
     register: http://127.0.0.1:4444/oauth2/register
     token: http://127.0.0.1:4444/oauth2/token
+  clients:
+    - id: bss
+      secret: IAMBSS
 
 
 options:
@@ -104,8 +107,6 @@ options:
 ## Troubleshooting
 
 - Make sure all remote hosts in config file are reachable.
-- If you get a CSRF violation error, try clearing the cookies in your browser.
-- If you only want to receive an ID token, comment out the other URLs in config. This may be changed in the future.
 - The JWKS url can be found from your authentication server's OpenID configuration
 `curl https://<your authetication server>/.well-known/openid-configuration`
 
