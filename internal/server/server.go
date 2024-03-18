@@ -66,6 +66,29 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 			panic(err)
 		}
 	})
+	r.HandleFunc("/key", func(w http.ResponseWriter, r *http.Request) {
+
+	})
+	r.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
+		// use refresh token provided to do a refresh token grant
+		refreshToken := r.URL.Query().Get("refresh-token")
+		_, err := client.PerformRefreshTokenGrant(provider.Endpoints.Token, refreshToken)
+		if err != nil {
+			fmt.Printf("failed to perform refresh token grant: %v\n", err)
+			http.Redirect(w, r, "/error", http.StatusInternalServerError)
+			return
+		}
+
+		// return token to target if set or the sending client
+		returnTarget := r.URL.Query().Get("target")
+		if returnTarget != "" {
+
+		} else {
+			host := r.URL.Host
+			httpx.MakeHttpRequest(host, http.MethodPost, httpx.Body{}, httpx.Headers{})
+
+		}
+	})
 	r.HandleFunc(s.Callback, func(w http.ResponseWriter, r *http.Request) {
 		// get the code from the OIDC provider
 		if r != nil {
@@ -104,7 +127,7 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 				return
 			}
 
-			// extract scopes from ID token and add to trusted issuer
+			// TODO: extract scopes from ID token and add to trusted issuer
 
 			// complete JWT bearer flow to receive access token from authorization server
 			// fmt.Printf("bearer: %v\n", string(bearerToken))

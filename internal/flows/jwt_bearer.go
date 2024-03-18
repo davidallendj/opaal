@@ -24,6 +24,7 @@ type JwtBearerFlowParams struct {
 	IdentityProvider *oidc.IdentityProvider
 	TrustedIssuer    *oauth.TrustedIssuer
 	Client           *oauth.Client
+	Refresh          bool
 	Verbose          bool
 	KeyPath          string
 }
@@ -97,13 +98,18 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 		}
 	}
 
+	// add more required claims and validate
 	publicJwk.Set("kid", uuid.New().String())
 	publicJwk.Set("use", "sig")
-
 	if err := publicJwk.Validate(); err != nil {
 		return "", fmt.Errorf("failed to validate public JWK: %v", err)
 	}
 	trustedIssuer.PublicKey = publicJwk
+
+	// add offline_access scope to enable refresh tokens
+	if params.Refresh {
+		trustedIssuer.Scope = append(trustedIssuer.Scope, "offline_access")
+	}
 
 	// 3.b ...and then, add opaal's server host as a trusted issuer with JWK
 	if verbose {
@@ -131,6 +137,13 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 	payload["nbf"] = time.Now().Unix()
 	payload["exp"] = time.Now().Add(time.Second * 3600).Unix()
 	payload["sub"] = "opaal"
+
+	// include the offline_access scope if refresh tokens are enabled
+	if params.Refresh {
+		scope := payload["scp"].([]string)
+		scope = append(scope, "offline_access")
+		payload["scp"] = scope
+	}
 	payloadJson, err := json.Marshal(payload)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal payload: %v", err)

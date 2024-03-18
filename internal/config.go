@@ -24,6 +24,7 @@ type Options struct {
 	CachePath       string `yaml:"cache"`
 	CacheOnly       bool   `yaml:"cache-only"`
 	TokenForwarding bool   `yaml:"token-forwarding"`
+	Refresh         bool   `yaml:"refresh"`
 	Verbose         bool   `yaml:"verbose"`
 }
 
@@ -72,6 +73,7 @@ func NewConfig() Config {
 			FlowType:        "authorization_code",
 			CacheOnly:       false,
 			TokenForwarding: false,
+			Refresh:         true,
 			Verbose:         false,
 		},
 		Authentication: Authentication{

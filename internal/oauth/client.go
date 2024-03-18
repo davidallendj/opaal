@@ -211,10 +211,26 @@ func (client *Client) PerformTokenGrant(clientUrl string, encodedJwt string) ([]
 	}
 
 	_, b, err := httpx.MakeHttpRequest(clientUrl, http.MethodPost, []byte(body), headers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make HTTP request: %v", err)
+
+	}
 
 	// set flow ID back to empty string to indicate a completed flow
 	client.FlowId = ""
 
+	return b, err
+}
+
+func (client *Client) PerformRefreshTokenGrant(url string, refreshToken string) ([]byte, error) {
+	body := httpx.Body("grant_type=refresh_token" +
+		"&refresh_token=" + refreshToken +
+		"&scope" + strings.Join(client.Scope, "+"))
+	headers := httpx.Headers{}
+	_, b, err := httpx.MakeHttpRequest(url, http.MethodPost, body, headers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make HTTP request: %v", err)
+	}
 	return b, err
 }
 
