@@ -38,6 +38,8 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 		)
 
 		var button = MakeButton(authorizationUrl, "Login with "+client.Name)
+		var jwtClient = oauth.NewClient()
+		jwtClient.Scope = config.Authorization.Token.Scope
 
 		// authorize oauth client and listen for callback from provider
 		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", s.GetListenAddr())
@@ -56,17 +58,17 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 				Register:       config.Authorization.Endpoints.Register,
 			},
 			JwtBearerParams: flows.JwtBearerFlowParams{
-				Client:           oauth.NewClient(),
+				Client:           jwtClient,
 				IdentityProvider: provider,
 				TrustedIssuer: &oauth.TrustedIssuer{
 					AllowAnySubject: false,
 					Issuer:          s.Addr,
 					Subject:         "opaal",
-					ExpiresAt:       time.Now().Add(config.Authorization.TokenDuration),
+					ExpiresAt:       time.Now().Add(config.Authorization.Token.Duration),
 					Scope:           []string{},
 				},
 				Verbose: config.Options.Verbose,
-				Refresh: config.Authorization.TokenRefresh,
+				Refresh: config.Authorization.Token.Refresh,
 			},
 		}
 		err = s.Login(button, provider, client, params)

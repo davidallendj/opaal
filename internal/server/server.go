@@ -122,7 +122,7 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 			http.Redirect(w, r, "/error", http.StatusBadRequest)
 			return
 		}
-		_, err := client.PerformRefreshTokenGrant(provider.Endpoints.Token, refreshToken)
+		_, err := params.JwtBearerParams.Client.PerformRefreshTokenGrant(provider.Endpoints.Token, refreshToken)
 		if err != nil {
 			fmt.Printf("failed to perform refresh token grant: %v\n", err)
 			http.Redirect(w, r, "/error", http.StatusInternalServerError)

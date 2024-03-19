@@ -66,6 +66,9 @@ func (client *Client) AddTrustedIssuer(url string, ti *TrustedIssuer) ([]byte, e
 		return nil, fmt.Errorf("no valid trusted issuer provided")
 	}
 
+	// add the client's scope to trusted issuer
+	ti.Scope = append(ti.Scope, client.Scope...)
+
 	quotedScopes := make([]string, len(ti.Scope))
 	for i, s := range ti.Scope {
 		quotedScopes[i] = fmt.Sprintf("\"%s\"", s)
