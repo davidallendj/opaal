@@ -93,10 +93,14 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 			err := p.FetchServerConfig()
 			if err != nil {
 				fmt.Printf("failed to fetch server config: %v\n", err)
+				http.Redirect(w, r, "/error", http.StatusInternalServerError)
+				return
 			}
 			err = p.FetchJwks()
 			if err != nil {
 				fmt.Printf("failed to fetch JWKS after fetching server config: %v\n", err)
+				http.Redirect(w, r, "/error", http.StatusInternalServerError)
+				return
 			}
 
 		}
@@ -113,6 +117,11 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 	r.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
 		// use refresh token provided to do a refresh token grant
 		refreshToken := r.URL.Query().Get("refresh-token")
+		if refreshToken == "" {
+			fmt.Printf("no refresh token provided")
+			http.Redirect(w, r, "/error", http.StatusBadRequest)
+			return
+		}
 		_, err := client.PerformRefreshTokenGrant(provider.Endpoints.Token, refreshToken)
 		if err != nil {
 			fmt.Printf("failed to perform refresh token grant: %v\n", err)
@@ -214,7 +223,7 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		if params.Verbose {
 			fmt.Printf("Serving error page.")
 		}
-		template, err := gonja.FromFile("pages/success.html")
+		template, err := gonja.FromFile("pages/error.html")
 		if err != nil {
 			panic(err)
 		}

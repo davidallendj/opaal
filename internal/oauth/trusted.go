@@ -62,8 +62,12 @@ func (client *Client) ListTrustedIssuers(url string) ([]TrustedIssuer, error) {
 
 func (client *Client) AddTrustedIssuer(url string, ti *TrustedIssuer) ([]byte, error) {
 	// hydra endpoint: POST /admin/trust/grants/jwt-bearer/issuers
-	quotedScopes := make([]string, len(client.Scope))
-	for i, s := range client.Scope {
+	if ti == nil {
+		return nil, fmt.Errorf("no valid trusted issuer provided")
+	}
+
+	quotedScopes := make([]string, len(ti.Scope))
+	for i, s := range ti.Scope {
 		quotedScopes[i] = fmt.Sprintf("\"%s\"", s)
 	}
 
@@ -73,13 +77,13 @@ func (client *Client) AddTrustedIssuer(url string, ti *TrustedIssuer) ([]byte, e
 		"issuer":            ti.Issuer,
 		"expires_at":        ti.ExpiresAt,
 		"jwk":               ti.PublicKey,
-		"scope":             client.Scope,
+		"scope":             ti.Scope,
 	}
 	if !ti.AllowAnySubject {
 		body["subject"] = ti.Subject
 	}
 	b, err := json.Marshal(body)
-	fmt.Printf("request: %v\n", string(b))
+	// fmt.Printf("request: %v\n", string(b))
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request body: %v", err)
 	}

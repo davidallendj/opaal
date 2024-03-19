@@ -5,6 +5,7 @@ import (
 	"davidallendj/opaal/internal/flows"
 	"davidallendj/opaal/internal/oauth"
 	"davidallendj/opaal/internal/oidc"
+	"davidallendj/opaal/internal/server"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,15 +32,15 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 
 		// print the authorization URL for sharing
 		var authorizationUrl = client.BuildAuthorizationUrl(provider.Endpoints.Authorization, state)
-		server := NewServerWithConfig(config)
+		s := NewServerWithConfig(config)
 		fmt.Printf("Login with identity provider:\n\n  %s/login\n  %s\n\n",
-			server.GetListenAddr(), authorizationUrl,
+			s.GetListenAddr(), authorizationUrl,
 		)
 
 		var button = MakeButton(authorizationUrl, "Login with "+client.Name)
 
 		// authorize oauth client and listen for callback from provider
-		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", server.GetListenAddr())
+		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", s.GetListenAddr())
 		params := server.ServerParams{
 			AuthProvider: &oidc.IdentityProvider{
 				Issuer: config.Authorization.Endpoints.Issuer,
@@ -49,24 +50,26 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 				},
 			},
 			Verbose: config.Options.Verbose,
-			JwtBearerFlowEndpoints: flows.JwtBearerEndpoints{
+			JwtBearerEndpoints: flows.JwtBearerEndpoints{
 				Token:          config.Authorization.Endpoints.Token,
 				TrustedIssuers: config.Authorization.Endpoints.TrustedIssuers,
 				Register:       config.Authorization.Endpoints.Register,
 			},
-			JwtBearerFlowParams: flows.JwtBearerFlowParams{
+			JwtBearerParams: flows.JwtBearerFlowParams{
 				Client:           oauth.NewClient(),
 				IdentityProvider: provider,
 				TrustedIssuer: &oauth.TrustedIssuer{
 					AllowAnySubject: false,
-					Issuer:          server.Addr,
+					Issuer:          s.Addr,
 					Subject:         "opaal",
 					ExpiresAt:       time.Now().Add(config.Authorization.TokenDuration),
+					Scope:           []string{},
 				},
 				Verbose: config.Options.Verbose,
+				Refresh: config.Authorization.TokenRefresh,
 			},
 		}
-		err = server.Login(button, provider, client, params)
+		err = s.Login(button, provider, client, params)
 		if errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("\n=========================================\nServer closed.\n=========================================\n\n")
 		} else if err != nil {

@@ -85,7 +85,7 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 		b := cryptox.MarshalRSAPrivateKey(privateKey)
 		err = os.WriteFile(keyPath, b, os.ModePerm)
 		if err != nil {
-			fmt.Printf("failed to write private key to file: %v", err)
+			fmt.Printf("failed to write private key to file: %v\n", err)
 		}
 	} else {
 		privateKey, err := cryptox.GenerateRSAPrivateKey(rawPrivateKey)
@@ -140,9 +140,18 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 
 	// include the offline_access scope if refresh tokens are enabled
 	if params.Refresh {
-		scope := payload["scp"].([]string)
-		scope = append(scope, "offline_access")
-		payload["scp"] = scope
+		v, ok := payload["scope"]
+		if !ok {
+			payload["scope"] = []string{"offline_access"}
+		} else {
+			// FIXME: probably should not assume scope is []string even though it should be
+			scope := v.([]string)
+			scope = append(scope, "offline_access")
+			payload["scope"] = scope
+		}
+
+		// also include offline_access in client to make request
+		client.Scope = append(client.Scope, "offline_access")
 	}
 	payloadJson, err := json.Marshal(payload)
 	if err != nil {
@@ -201,6 +210,7 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 	// 6. send JWT to authorization server and receive a access token
 	if eps.Token != "" {
 		fmt.Printf("Fetching access token from authorization server...\n")
+		fmt.Printf("jwt: %s\n", string(newJwt))
 		res, err := client.PerformTokenGrant(eps.Token, string(newJwt))
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch access token: %v", err)

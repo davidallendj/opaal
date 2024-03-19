@@ -24,7 +24,6 @@ type Options struct {
 	FlowType    string `yaml:"flow"`
 	CachePath   string `yaml:"cache"`
 	CacheOnly   bool   `yaml:"cache-only"`
-	Refresh     bool   `yaml:"refresh"`
 	Verbose     bool   `yaml:"verbose"`
 }
 
@@ -53,6 +52,7 @@ type Authorization struct {
 	KeyPath         string        `yaml:"key-path"`
 	TokenDuration   time.Duration `yaml:"token-duration"`
 	TokenForwarding bool          `yaml:"token-forwarding"`
+	TokenRefresh    bool          `yaml:"refresh"`
 }
 
 type Config struct {
@@ -77,7 +77,6 @@ func NewConfig() Config {
 			CachePath:   "opaal.db",
 			FlowType:    "authorization_code",
 			CacheOnly:   false,
-			Refresh:     true,
 			Verbose:     false,
 		},
 		Authentication: Authentication{
@@ -87,6 +86,7 @@ func NewConfig() Config {
 			KeyPath:         "./keys",
 			TokenForwarding: false,
 			TokenDuration:   1 * time.Hour,
+			TokenRefresh:    true,
 		},
 	}
 }
