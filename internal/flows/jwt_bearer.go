@@ -157,7 +157,6 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal payload: %v", err)
 	}
-	fmt.Printf("payload: %v\n", string(payloadJson))
 	newJwt, err := jws.Sign(payloadJson, jws.WithJSON(), jws.WithKey(jwa.RS256, privateJwk))
 	if err != nil {
 		return "", fmt.Errorf("failed to sign token: %v", err)
