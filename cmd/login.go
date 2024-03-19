@@ -105,11 +105,10 @@ func init() {
 	loginCmd.Flags().BoolVar(&config.Options.OpenBrowser, "open-browser", config.Options.OpenBrowser, "automatically open link in browser")
 	loginCmd.Flags().BoolVar(&config.Options.RunOnce, "once", config.Options.RunOnce, "set whether to run login once and exit")
 	loginCmd.Flags().StringVar(&config.Options.FlowType, "flow", config.Options.FlowType, "set the grant-type/authorization flow")
-	loginCmd.Flags().BoolVar(&config.Options.CacheOnly, "local", config.Options.CacheOnly, "only fetch identity provider configs stored locally")
+	loginCmd.Flags().BoolVar(&config.Options.CacheOnly, "cache-only", config.Options.CacheOnly, "only fetch identity provider configs stored locally")
 	loginCmd.Flags().BoolVar(&config.Authentication.TestAllClients, "test-all", config.Authentication.TestAllClients, "test all clients in config for a valid provider")
 	loginCmd.Flags().StringVar(&target, "target", "", "set target client to use from config by name")
 	loginCmd.Flags().IntVar(&targetIndex, "index", -1, "set target client to use from config by index")
 	loginCmd.MarkFlagsMutuallyExclusive("target", "index")
-
 	rootCmd.AddCommand(loginCmd)
 }
