@@ -40,6 +40,13 @@ type Endpoints struct {
 	Register       string `yaml:"register"`
 }
 
+type TokenOptions struct {
+	Duration   time.Duration `yaml:"duration"`
+	Forwarding bool          `yaml:"forwarding"`
+	Refresh    bool          `yaml:"refresh"`
+	Scope      []string      `yaml:"scope"`
+}
+
 type Authentication struct {
 	Clients        []oauth.Client `yaml:"clients"`
 	Flows          Flows          `yaml:"flows"`
@@ -48,11 +55,9 @@ type Authentication struct {
 }
 
 type Authorization struct {
-	Endpoints       Endpoints     `yaml:"endpoints"`
-	KeyPath         string        `yaml:"key-path"`
-	TokenDuration   time.Duration `yaml:"token-duration"`
-	TokenForwarding bool          `yaml:"token-forwarding"`
-	TokenRefresh    bool          `yaml:"refresh"`
+	Endpoints Endpoints    `yaml:"endpoints"`
+	KeyPath   string       `yaml:"key-path"`
+	Token     TokenOptions `yaml:"token"`
 }
 
 type Config struct {
@@ -83,10 +88,13 @@ func NewConfig() Config {
 			TestAllClients: false,
 		},
 		Authorization: Authorization{
-			KeyPath:         "./keys",
-			TokenForwarding: false,
-			TokenDuration:   1 * time.Hour,
-			TokenRefresh:    true,
+			KeyPath: "./keys",
+			Token: TokenOptions{
+				Forwarding: false,
+				Duration:   1 * time.Hour,
+				Refresh:    true,
+				Scope:      []string{},
+			},
 		},
 	}
 }
