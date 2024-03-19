@@ -30,7 +30,11 @@ type Client struct {
 }
 
 func NewClient() *Client {
-	return &Client{}
+	return &Client{
+		RedirectUris: []string{},
+		Scope:        []string{},
+		Audience:     []string{},
+	}
 }
 
 func (client *Client) ClearCookies() {
