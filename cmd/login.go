@@ -85,6 +85,7 @@ var loginCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
+			// start the listener
 			err := opaal.Login(&config, &client, provider)
 			if err != nil {
 				fmt.Printf("%v\n", err)

@@ -24,10 +24,12 @@ type Server struct {
 }
 
 type ServerParams struct {
-	AuthProvider       *oidc.IdentityProvider
-	Verbose            bool
-	JwtBearerEndpoints flows.JwtBearerEndpoints
-	JwtBearerParams    flows.JwtBearerFlowParams
+	AuthProvider               *oidc.IdentityProvider
+	Verbose                    bool
+	ClientCredentialsEndpoints flows.ClientCredentialsFlowEndpoints
+	ClientCredentialsParams    flows.ClientCredentialsFlowParams
+	JwtBearerEndpoints         flows.JwtBearerFlowEndpoints
+	JwtBearerParams            flows.JwtBearerFlowParams
 }
 
 func (s *Server) SetListenAddr(host string, port int) {
@@ -38,7 +40,7 @@ func (s *Server) GetListenAddr() string {
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
-func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *oauth.Client, params ServerParams) error {
+func (s *Server) Start(buttons string, provider *oidc.IdentityProvider, client *oauth.Client, params ServerParams) error {
 	var target = ""
 
 	// check if callback is set
@@ -114,30 +116,37 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		w.Write(jwks)
 
 	})
-	r.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		// use refresh token provided to do a refresh token grant
 		refreshToken := r.URL.Query().Get("refresh-token")
-		if refreshToken == "" {
-			fmt.Printf("no refresh token provided")
-			http.Redirect(w, r, "/error", http.StatusBadRequest)
-			return
-		}
-		_, err := params.JwtBearerParams.Client.PerformRefreshTokenGrant(provider.Endpoints.Token, refreshToken)
-		if err != nil {
-			fmt.Printf("failed to perform refresh token grant: %v\n", err)
-			http.Redirect(w, r, "/error", http.StatusInternalServerError)
-			return
-		}
+		if refreshToken != "" {
+			_, err := params.JwtBearerParams.Client.PerformRefreshTokenGrant(provider.Endpoints.Token, refreshToken)
+			if err != nil {
+				fmt.Printf("failed to perform refresh token grant: %v\n", err)
+				http.Redirect(w, r, "/error", http.StatusInternalServerError)
+				return
+			}
 
-		// return token to target if set or the sending client
-		returnTarget := r.URL.Query().Get("target")
-		if returnTarget == "" {
-			returnTarget = r.URL.Host
-		}
-		_, _, err = httpx.MakeHttpRequest(returnTarget, http.MethodPost, httpx.Body{}, httpx.Headers{})
-		if err != nil {
-			fmt.Printf("failed to make request")
-			http.Redirect(w, r, "/error", http.StatusInternalServerError)
+			// return token to target if set or the sending client
+			returnTarget := r.URL.Query().Get("target")
+			if returnTarget == "" {
+				returnTarget = r.URL.Host
+			}
+			_, _, err = httpx.MakeHttpRequest(returnTarget, http.MethodPost, httpx.Body{}, httpx.Headers{})
+			if err != nil {
+				fmt.Printf("failed to make request")
+				http.Redirect(w, r, "/error", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			// perform a client credentials grant and return a token
+			var err error
+			accessToken, err = flows.NewClientCredentialsFlow(params.ClientCredentialsEndpoints, params.ClientCredentialsParams)
+			if err != nil {
+				fmt.Printf("failed to perform client credentials flow: %v\n", err)
+				http.Redirect(w, r, "/error", http.StatusInternalServerError)
+				return
+			}
 		}
 	})
 	r.HandleFunc(s.Callback, func(w http.ResponseWriter, r *http.Request) {
@@ -196,6 +205,13 @@ func (s *Server) Login(buttons string, provider *oidc.IdentityProvider, client *
 		if params.Verbose {
 			fmt.Printf("Serving success page.\n")
 		}
+
+		// return only the token with no web page if "no-browser" header is set
+		noBrowser := r.Header.Get("no-browser")
+		if noBrowser != "" {
+			return
+		}
+
 		template, err := gonja.FromFile("pages/success.html")
 		if err != nil {
 			panic(err)

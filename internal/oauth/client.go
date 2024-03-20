@@ -14,6 +14,14 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
+type GrantType = string
+
+const (
+	AuthorizationCode GrantType = "authorization_code"
+	ClientCredentials GrantType = "client_credentials"
+	JwtBearer         GrantType = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+)
+
 type Client struct {
 	http.Client
 	Id                      string   `db:"id" yaml:"id"`
@@ -87,21 +95,25 @@ func (client *Client) GetOAuthClient(clientUrl string) error {
 	return nil
 }
 
-func (client *Client) CreateOAuthClient(registerUrl string) ([]byte, error) {
+func (client *Client) CreateOAuthClient(registerUrl string, grantTypes []GrantType) ([]byte, error) {
 	// hydra endpoint: POST /clients
+	if client == nil {
+		return nil, fmt.Errorf("invalid client")
+	}
 	audience := util.QuoteArrayStrings(client.Audience)
+	grantTypes = util.QuoteArrayStrings(grantTypes)
 	body := httpx.Body(fmt.Sprintf(`{
 		"client_id":                  "%s",
 		"client_name":                "%s",
 		"client_secret":              "%s",
 		"token_endpoint_auth_method": "client_secret_post",
 		"scope":                      "%s",
-		"grant_types":                ["urn:ietf:params:oauth:grant-type:jwt-bearer"],
+		"grant_types":                [%s],
 		"response_types":             ["token"],
 		"redirect_uris":              ["http://127.0.0.1:3333/callback"],
 		"state":                      12345678910,
 		"audience":                   [%s]
-		}`, client.Id, client.Id, client.Secret, strings.Join(client.Scope, " "), strings.Join(audience, ","),
+		}`, client.Id, client.Id, client.Secret, strings.Join(client.Scope, " "), strings.Join(grantTypes, ","), strings.Join(audience, ","),
 	))
 	headers := httpx.Headers{
 		"Content-Type": "application/json",
@@ -131,22 +143,23 @@ func (client *Client) CreateOAuthClient(registerUrl string) ([]byte, error) {
 	return b, err
 }
 
-func (client *Client) RegisterOAuthClient(registerUrl string) ([]byte, error) {
+func (client *Client) RegisterOAuthClient(registerUrl string, grantTypes []GrantType) ([]byte, error) {
 	// hydra endpoint: POST /oauth2/register
 	if registerUrl == "" {
 		return nil, fmt.Errorf("no URL provided")
 	}
 	audience := util.QuoteArrayStrings(client.Audience)
+	grantTypes = util.QuoteArrayStrings(grantTypes)
 	body := httpx.Body(fmt.Sprintf(`{
 		"client_name":                "opaal",
 		"token_endpoint_auth_method": "client_secret_post",
 		"scope":                      "%s",
-		"grant_types":                ["urn:ietf:params:oauth:grant-type:jwt-bearer"],
+		"grant_types":                [%s],
 		"response_types":             ["token"],
 		"redirect_uris":              ["http://127.0.0.1:3333/callback"],
 		"state":                      12345678910,
 		"audience":                   [%s]
-		}`, strings.Join(client.Scope, " "), strings.Join(audience, ","),
+		}`, strings.Join(client.Scope, " "), strings.Join(grantTypes, ","), strings.Join(audience, ","),
 	))
 	headers := httpx.Headers{
 		"Content-Type": "application/json",
@@ -196,7 +209,7 @@ func (client *Client) AuthorizeOAuthClient(authorizeUrl string) ([]byte, error) 
 	return b, nil
 }
 
-func (client *Client) PerformTokenGrant(clientUrl string, encodedJwt string) ([]byte, error) {
+func (client *Client) PerformJwtBearerTokenGrant(clientUrl string, encodedJwt string) ([]byte, error) {
 	// hydra endpoint: /oauth/token
 	body := "grant_type=" + url.QueryEscape("urn:ietf:params:oauth:grant-type:jwt-bearer") +
 		"&client_id=" + client.Id +
@@ -220,8 +233,29 @@ func (client *Client) PerformTokenGrant(clientUrl string, encodedJwt string) ([]
 
 	}
 
-	// set flow ID back to empty string to indicate a completed flow
-	client.FlowId = ""
+	return b, err
+}
+
+func (client *Client) PerformClientCredentialsTokenGrant(clientUrl string) ([]byte, error) {
+	// hydra endpoint: /oauth/token
+	body := "grant_type=" + url.QueryEscape("client_credentials") +
+		"&client_id=" + client.Id +
+		"&client_secret=" + client.Secret +
+		"&redirect_uri=" + url.QueryEscape("http://127.0.0.1:3333/callback")
+	// add optional params if valid
+	if client.Scope != nil || len(client.Scope) > 0 {
+		body += "&scope=" + strings.Join(client.Scope, "+")
+	}
+	headers := httpx.Headers{
+		"Content-Type":  "application/x-www-form-urlencoded",
+		"Authorization": "Bearer " + client.RegistrationAccessToken,
+	}
+
+	_, b, err := httpx.MakeHttpRequest(clientUrl, http.MethodPost, []byte(body), headers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make HTTP request: %v", err)
+
+	}
 
 	return b, err
 }

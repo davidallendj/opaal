@@ -29,14 +29,14 @@ type JwtBearerFlowParams struct {
 	KeyPath          string
 }
 
-type JwtBearerEndpoints struct {
+type JwtBearerFlowEndpoints struct {
 	TrustedIssuers string
 	Token          string
 	Clients        string
 	Register       string
 }
 
-func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (string, error) {
+func NewJwtBearerFlow(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) (string, error) {
 	// 1. verify that the JWT from the issuer is valid using all keys
 	var (
 		idp           = params.IdentityProvider
@@ -164,7 +164,7 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 
 	// 5. dynamically register new OAuth client and authorize it to make jwt_bearer request
 	fmt.Printf("Registering new OAuth2 client with authorization server...\n")
-	res, err = client.RegisterOAuthClient(eps.Register)
+	res, err = client.RegisterOAuthClient(eps.Register, []oauth.GrantType{oauth.JwtBearer})
 	if err != nil {
 		return "", fmt.Errorf("failed to register client: %v", err)
 	}
@@ -189,7 +189,7 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 				return "", fmt.Errorf("failed to delete OAuth client: %v", err)
 			}
 			fmt.Printf("Attempting to re-create client...\n")
-			res, err := client.CreateOAuthClient(eps.Clients)
+			res, err := client.CreateOAuthClient(eps.Clients, []oauth.GrantType{oauth.JwtBearer})
 			if err != nil {
 				return "", fmt.Errorf("failed to register client: %v", err)
 			}
@@ -210,7 +210,7 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 	if eps.Token != "" {
 		fmt.Printf("Fetching access token from authorization server...\n")
 		fmt.Printf("jwt: %s\n", string(newJwt))
-		res, err := client.PerformTokenGrant(eps.Token, string(newJwt))
+		res, err := client.PerformJwtBearerTokenGrant(eps.Token, string(newJwt))
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch access token: %v", err)
 		}
@@ -237,7 +237,7 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 	return string(res), nil
 }
 
-func ForwardToken(eps JwtBearerEndpoints, params JwtBearerFlowParams) error {
+func ForwardToken(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) error {
 	var (
 		client  = params.Client
 		idToken = params.IdToken
@@ -279,7 +279,7 @@ func ForwardToken(eps JwtBearerEndpoints, params JwtBearerFlowParams) error {
 	if verbose {
 		fmt.Printf("Registering new OAuth2 client with authorization server...\n")
 	}
-	res, err := client.RegisterOAuthClient(eps.Register)
+	res, err := client.RegisterOAuthClient(eps.Register, []oauth.GrantType{oauth.JwtBearer})
 	if err != nil {
 		return fmt.Errorf("failed to register client: %v", err)
 	}
@@ -306,7 +306,7 @@ func ForwardToken(eps JwtBearerEndpoints, params JwtBearerFlowParams) error {
 				return fmt.Errorf("failed to delete OAuth client: %v", err)
 			}
 			fmt.Printf("Attempting to re-create client...\n")
-			res, err := client.CreateOAuthClient(eps.Clients)
+			res, err := client.CreateOAuthClient(eps.Clients, []oauth.GrantType{oauth.JwtBearer})
 			if err != nil {
 				return fmt.Errorf("failed to register client: %v", err)
 			}
@@ -327,7 +327,7 @@ func ForwardToken(eps JwtBearerEndpoints, params JwtBearerFlowParams) error {
 		if verbose {
 			fmt.Printf("Fetching access token from authorization server...\n")
 		}
-		res, err := client.PerformTokenGrant(eps.Token, idToken)
+		res, err := client.PerformJwtBearerTokenGrant(eps.Token, idToken)
 		if err != nil {
 			return fmt.Errorf("failed to fetch access token: %v", err)
 		}

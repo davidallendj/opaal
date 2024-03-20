@@ -14,7 +14,15 @@ import (
 
 func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider) error {
 	if config == nil {
-		return fmt.Errorf("config is not valid")
+		return fmt.Errorf("invalid config")
+	}
+
+	if client == nil {
+		return fmt.Errorf("invalid client")
+	}
+
+	if provider == nil {
+		return fmt.Errorf("invalid identity provider")
 	}
 
 	// make cache if it's not where expect
@@ -38,12 +46,13 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 		)
 
 		var button = MakeButton(authorizationUrl, "Login with "+client.Name)
-		var jwtClient = oauth.NewClient()
-		jwtClient.Scope = config.Authorization.Token.Scope
+		var authzClient = oauth.NewClient()
+		authzClient.Scope = config.Authorization.Token.Scope
 
 		// authorize oauth client and listen for callback from provider
 		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", s.GetListenAddr())
 		params := server.ServerParams{
+			Verbose: config.Options.Verbose,
 			AuthProvider: &oidc.IdentityProvider{
 				Issuer: config.Authorization.Endpoints.Issuer,
 				Endpoints: oidc.Endpoints{
@@ -51,14 +60,13 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 					JwksUri: config.Authorization.Endpoints.JwksUri,
 				},
 			},
-			Verbose: config.Options.Verbose,
-			JwtBearerEndpoints: flows.JwtBearerEndpoints{
+			JwtBearerEndpoints: flows.JwtBearerFlowEndpoints{
 				Token:          config.Authorization.Endpoints.Token,
 				TrustedIssuers: config.Authorization.Endpoints.TrustedIssuers,
 				Register:       config.Authorization.Endpoints.Register,
 			},
 			JwtBearerParams: flows.JwtBearerFlowParams{
-				Client:           jwtClient,
+				Client:           authzClient,
 				IdentityProvider: provider,
 				TrustedIssuer: &oauth.TrustedIssuer{
 					AllowAnySubject: false,
@@ -70,8 +78,16 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 				Verbose: config.Options.Verbose,
 				Refresh: config.Authorization.Token.Refresh,
 			},
+			ClientCredentialsEndpoints: flows.ClientCredentialsFlowEndpoints{
+				Clients:   config.Authorization.Endpoints.Clients,
+				Authorize: config.Authorization.Endpoints.Authorize,
+				Token:     config.Authorization.Endpoints.Token,
+			},
+			ClientCredentialsParams: flows.ClientCredentialsFlowParams{
+				Client: authzClient,
+			},
 		}
-		err = s.Login(button, provider, client, params)
+		err = s.Start(button, provider, client, params)
 		if errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("\n=========================================\nServer closed.\n=========================================\n\n")
 		} else if err != nil {
@@ -79,7 +95,10 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 		}
 
 	} else if config.Options.FlowType == "client_credentials" {
-		err := NewClientCredentialsFlowWithConfig(config, client)
+		params := flows.ClientCredentialsFlowParams{
+			Client: client,
+		}
+		_, err := NewClientCredentialsFlowWithConfig(config, params)
 		if err != nil {
 			fmt.Printf("failed to complete client credentials flow: %v", err)
 		}

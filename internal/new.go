@@ -72,13 +72,13 @@ func NewClientWithConfigById(config *Config, id string) *oauth.Client {
 	return nil
 }
 
-func NewClientCredentialsFlowWithConfig(config *Config, client *oauth.Client) error {
+func NewClientCredentialsFlowWithConfig(config *Config, params flows.ClientCredentialsFlowParams) (string, error) {
 	eps := flows.ClientCredentialsFlowEndpoints{
-		Create:    config.Authorization.Endpoints.Clients,
+		Clients:   config.Authorization.Endpoints.Clients,
 		Authorize: config.Authorization.Endpoints.Authorize,
 		Token:     config.Authorization.Endpoints.Token,
 	}
-	return flows.NewClientCredentialsFlow(eps, client)
+	return flows.NewClientCredentialsFlow(eps, params)
 }
 
 func NewServerWithConfig(conf *Config) *server.Server {
