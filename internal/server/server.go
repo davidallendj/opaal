@@ -56,6 +56,18 @@ func (s *Server) Start(buttons string, provider *oidc.IdentityProvider, client *
 		target = r.Header.Get("target")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	})
+	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		data := map[string]any{
+			"code":    200,
+			"message": "OPAAL is healthy",
+		}
+		err := json.NewEncoder(w).Encode(data)
+		if err != nil {
+			fmt.Printf("failed to encode JSON: %v\n", err)
+			return
+		}
+	})
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		// add target if query exists
 		if r != nil {
