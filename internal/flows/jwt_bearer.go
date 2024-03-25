@@ -238,6 +238,22 @@ func NewJwtBearerFlow(eps JwtBearerEndpoints, params JwtBearerFlowParams) (strin
 	return string(res), nil
 }
 
+func NewRefreshToken(issuer string, audience string, duration time.Duration) jwt.Token {
+	// create a new, one-time use JWT with no scopes
+	payload := map[string]any{}
+	payload["iss"] = issuer
+	payload["aud"] = audience
+	payload["iat"] = time.Now().Unix()
+	payload["nbf"] = time.Now().Unix()
+	payload["exp"] = time.Now().Add(duration).Unix()
+	payload["sub"] = "opaal"
+	payloadJson, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal payload: %v", err)
+	}
+	jws.Sign(payloadJson, jws.WithJSON(), jws.WithKey(jwa.RS256, privateJwk))
+}
+
 func ForwardToken(eps JwtBearerEndpoints, params JwtBearerFlowParams) error {
 	var (
 		client  = params.Client
