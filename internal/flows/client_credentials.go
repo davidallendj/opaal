@@ -25,10 +25,17 @@ func NewClientCredentialsFlow(eps ClientCredentialsFlowEndpoints, params ClientC
 	}
 
 	// authorize the client
+<<<<<<< HEAD
 	res, err = params.Client.AuthorizeOAuthClient(eps.Authorize)
 	if err != nil {
 		return "", fmt.Errorf("failed to authorize client: %v", err)
 	}
+=======
+	// _, err = client.AuthorizeOAuthClient(eps.Authorize)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to authorize client: %v", err)
+	// }
+>>>>>>> f49f3c8 (Removed the client authorization for client credentials flow)
 
 	// request a token from the authorization server
 	res, err = params.Client.PerformClientCredentialsTokenGrant(eps.Token)
