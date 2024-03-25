@@ -159,6 +159,7 @@ func (s *Server) Start(buttons string, provider *oidc.IdentityProvider, client *
 				http.Redirect(w, r, "/error", http.StatusInternalServerError)
 				return
 			}
+			w.Write([]byte(accessToken))
 		}
 	})
 	r.HandleFunc(s.Callback, func(w http.ResponseWriter, r *http.Request) {
