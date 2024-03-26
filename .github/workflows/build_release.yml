@@ -52,7 +52,7 @@ jobs:
           echo "fs.writeFileSync('digest.txt', firstNonNullDigest);" >> process.js
           node process.js
           echo "digest=$(cat digest.txt)" >> $GITHUB_OUTPUT
-      - name: Attest boot-script-service binary
+      - name: Attest opaal binary
         uses: github-early-access/generate-build-provenance@main
         with:
-          subject-path: opaal/boot-script-service
+          subject-path: opaal
