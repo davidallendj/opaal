@@ -48,8 +48,8 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
-release:
-  github:
-    name_template: "{{.Version}}"
-    prerelease: auto
-    mode: append
+# release:
+#   github:
+#   name_template: "{{.Version}}"
+#   prerelease: auto
+#   mode: append
