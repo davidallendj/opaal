@@ -35,8 +35,7 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     files:
-      - LICENSE
-      - CHANGELOG.md
+      - LICENSE.md
       - README.md
 checksum:
   name_template: 'checksums.txt'
