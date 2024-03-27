@@ -21,7 +21,7 @@ dockers:
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
     extra_files:
-      - LICENSE
+      - LICENSE.md
       - README.md
 archives:
   - format: tar.gz
