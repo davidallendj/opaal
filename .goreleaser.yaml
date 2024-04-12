@@ -23,6 +23,7 @@ dockers:
     extra_files:
       - LICENSE.md
       - README.md
+      - pages/
 archives:
   - format: tar.gz
     rlcp: true
@@ -37,6 +38,7 @@ archives:
     files:
       - LICENSE.md
       - README.md
+      - pages/
 checksum:
   name_template: 'checksums.txt'
 snapshot:
