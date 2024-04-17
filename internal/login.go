@@ -41,7 +41,7 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 		// print the authorization URL for sharing
 		var authorizationUrl = client.BuildAuthorizationUrl(provider.Endpoints.Authorization, state)
 		s := NewServerWithConfig(config)
-		fmt.Printf("Login with identity provider:\n\n  %s/login\n  %s\n\n",
+		fmt.Printf("Login with external identity provider:\n\n  %s/login\n  %s\n\n",
 			s.GetListenAddr(), authorizationUrl,
 		)
 
@@ -87,7 +87,7 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 				Client: authzClient,
 			},
 		}
-		err = s.Start(button, provider, client, params)
+		err = s.StartLogin(button, provider, client, params)
 		if errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("\n=========================================\nServer closed.\n=========================================\n\n")
 		} else if err != nil {
@@ -110,6 +110,7 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 }
 
 func MakeButton(url string, text string) string {
+	// check if we have http:// a
 	html := "<input type=\"button\" "
 	html += "class=\"button\" "
 	html += fmt.Sprintf("onclick=\"window.location.href='%s';\" ", url)

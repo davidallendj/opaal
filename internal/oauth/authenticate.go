@@ -21,8 +21,7 @@ func (client *Client) BuildAuthorizationUrl(issuer string, state string) string 
 		"&redirect_uri=" + url.QueryEscape(strings.Join(client.RedirectUris, ",")) +
 		"&response_type=code" + // this has to be set to "code"
 		"&state=" + state +
-		"&scope=" + strings.Join(client.Scope, "+") +
-		"&resource=" + url.QueryEscape("http://127.0.0.1:4444/oauth2/token")
+		"&scope=" + strings.Join(client.Scope, "+")
 }
 
 func (client *Client) InitiateLoginFlow(loginUrl string) error {
