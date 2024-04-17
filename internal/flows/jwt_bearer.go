@@ -60,7 +60,7 @@ func NewJwtBearerFlow(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) (s
 		}
 	}
 
-	// 2. Check if we are already registered as a trusted issuer with authorization server...
+	// TODO: 2. Check if we are already registered as a trusted issuer with authorization server...
 
 	// 3.a if not, create a new JWKS (or just JWK) to be verified
 	var (
@@ -77,7 +77,7 @@ func NewJwtBearerFlow(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) (s
 		if err != nil {
 			return "", fmt.Errorf("failed to generate new RSA key: %v", err)
 		}
-		privateJwk, publicJwk, err = cryptox.GenerateJwkKeyPairFromPrivateKey(privateKey)
+		privateJwk, publicJwk, err = GenerateJwkKeyPairFromPrivateKey(privateKey) // FIXME: needs to pull correct version from cryptox
 		if err != nil {
 			return "", fmt.Errorf("failed to generate JWK pair from private key: %v", err)
 		}
@@ -130,12 +130,13 @@ func NewJwtBearerFlow(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) (s
 	if err != nil {
 		return "", fmt.Errorf("failed to parse ID token: %v", err)
 	}
+
 	payload := parsedIdToken.PrivateClaims()
 	payload["iss"] = trustedIssuer.Issuer
 	payload["aud"] = []string{eps.Token}
 	payload["iat"] = time.Now().Unix()
 	payload["nbf"] = time.Now().Unix()
-	payload["exp"] = time.Now().Add(time.Second * 3600).Unix()
+	payload["exp"] = time.Now().Add(time.Second * 3600 * 16).Unix()
 	payload["sub"] = "opaal"
 
 	// include the offline_access scope if refresh tokens are enabled
@@ -338,4 +339,16 @@ func ForwardToken(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) error 
 		return fmt.Errorf("token endpoint is not set")
 	}
 	return nil
+}
+
+func GenerateJwkKeyPairFromPrivateKey(privateKey *rsa.PrivateKey) (jwk.Key, jwk.Key, error) {
+	privateJwk, err := jwk.FromRaw(privateKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create private JWK: %v", err)
+	}
+	publicJwk, err := jwk.PublicKeyOf(privateJwk)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create public JWK: %v", err)
+	}
+	return privateJwk, publicJwk, nil
 }
