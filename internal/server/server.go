@@ -93,6 +93,7 @@ func (s *Server) StartLogin(buttons string, provider *oidc.IdentityProvider, cli
 		// add target if query exists
 		if r != nil {
 			target = r.URL.Query().Get("target")
+			sso := r.URL.Query().Get("sso")
 		}
 		// show login page with notice to redirect
 		template, err := gonja.FromFile("pages/index.html")

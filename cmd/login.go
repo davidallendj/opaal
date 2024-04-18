@@ -85,6 +85,11 @@ var loginCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
+			// use clients to make SSO buttons that
+			for _, client := range config.Authentication.Clients {
+				MakeButton()
+			}
+
 			// start the listener
 			err := opaal.Login(&config, &client, provider)
 			if err != nil {
@@ -114,4 +119,14 @@ func init() {
 	loginCmd.Flags().IntVar(&targetIndex, "target.index", -1, "set target client to use from config by index")
 	loginCmd.MarkFlagsMutuallyExclusive("target.name", "target.index")
 	rootCmd.AddCommand(loginCmd)
+}
+
+func MakeButton(url string, text string) string {
+	// check if we have http:// a
+	html := "<input type=\"button\" "
+	html += "class=\"button\" "
+	html += fmt.Sprintf("onclick=\"window.location.href='%s';\" ", url)
+	html += fmt.Sprintf("value=\"%s\"", text)
+	return html
+	// return "<a href=\"" + url + "\"> " + text + "</a>"
 }
