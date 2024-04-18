@@ -341,7 +341,6 @@ func (s *Server) StartIdentityProvider() error {
 		if err != nil {
 			return
 		}
-		w.WriteHeader(200)
 		w.Write(b)
 	})
 
@@ -382,7 +381,6 @@ func (s *Server) StartIdentityProvider() error {
 		if err != nil {
 			return
 		}
-		w.WriteHeader(200)
 		w.Write(b)
 	})
 	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
