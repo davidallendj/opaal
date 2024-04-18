@@ -28,12 +28,39 @@ These commands will create a default config, then start the login process. Maybe
 - [Gitlab](https://about.gitlab.com/)
 - [Forgejo](https://forgejo.org/) (fork of Gitea)
 
+The tool is now able to run an internal example identity provider using the `serve` subcommand.
+
+```bash
+./opaal serve --config config.yaml
+```
+
+This will start a server that allows you to login with `opaal` itself. Currently, it is only has one example user to use for log in. The username and password combination is `ochami:ochami`. It uses the same config file as before with additional parameters set in the config file:
+
+```yaml
+server:
+  ...
+  issuer:
+    host: "127.0.0.1"
+    port: 3332
+
+authentication:
+  clients:
+    - id: "ochami"
+        secret: "ochami"
+        name: "ochami"
+        issuer: "http://127.0.0.1:3332"
+        redirect-uris:
+          - "http://127.0.0.1:3333/oidc/callback"
+```
+
+See the [Configuration](#configuration) section for the entire config file.
+
 ### Authorization Code Flow
 
 `opaal` has the ability to completely execute the authorization code and return an access token from an authorization server using social sign-in. The process works as follows:
 
 1. Click the authorization link or navigate to the hosted endpoint in your browser (127.0.0.1:3333 by default)
-	- Alternatively, you can use a link produced 
+	- Alternatively, you can use a link produced
 2. Login using identity provider credentials
 3. Authorize application registered with IdP
 4. IdP redirects to specified redirect URI
@@ -41,13 +68,11 @@ These commands will create a default config, then start the login process. Maybe
 	- ...verifying the authenticity of the ID token from identity provider with its JWKS
 	- ...adds itself as a trusted issuer to the authorization server with it's own JWK
 	- ...creates a new signed JWT to send to the authorization server with the `urn:ietf:params:oauth:grant-type:jwt-bearer` grant type
-	- ... returns an access token that can be used by services protected by the authorization server 
+	- ... returns an access token that can be used by services protected by the authorization server
 
 *After receiving the ID token, the rest of the flow requires the appropriate URLs to be set to continue.
 
 ### Client Credentials Flow
-
-`opaal` also has
 
 
 ## Configuration
@@ -55,13 +80,17 @@ These commands will create a default config, then start the login process. Maybe
 Here is an example configuration file:
 
 ```yaml
-version: "0.0.1"
+version: "0.3.2"
 server:
   host: "127.0.0.1"
   port: 3333
   callback: "/oidc/callback"
+  issuer:
+    host: "127.0.0.1"
+    port: 3332
 
 providers:
+  opaal: "https://127.0.0.1:3332"
   forgejo: "http://127.0.0.1:3000"
 
 authentication:
@@ -83,7 +112,17 @@ authentication:
     client-credentials:
 
 authorization:
-  urls:
+  token:
+    forwarding: false
+    refresh: false
+    duration: 16h
+    scope:
+      - smd.read
+  key-path: ./keys
+  endpoints:
+    issuer: http://127.0.0.1:4444
+    config: http://127.0.0.1:4444/.well-known/openid-configuration
+    jwks: http://127.0.0.1:4444/.well-known/jwks.json
     #identities: http://127.0.0.1:4434/admin/identities
     trusted-issuers: http://127.0.0.1:4445/admin/trust/grants/jwt-bearer/issuers
     login: http://127.0.0.1:4433/self-service/login/api
@@ -91,17 +130,14 @@ authorization:
     authorize: http://127.0.0.1:4444/oauth2/auth
     register: http://127.0.0.1:4444/oauth2/register
     token: http://127.0.0.1:4444/oauth2/token
-  clients:
-    - id: bss
-      secret: IAMBSS
 
 
 options:
-  decode-id-token: true
-  decode-access-token: true
   run-once: true
   open-browser: false
-  forward: false
+  flow: authorization_code
+  cache-only: false
+  verbose: true
 ```
 
 ## Troubleshooting
