@@ -16,12 +16,15 @@ func (client *Client) IsFlowInitiated() bool {
 	return client.FlowId != ""
 }
 
-func (client *Client) BuildAuthorizationUrl(issuer string, state string) string {
-	return issuer + "?" + "client_id=" + client.Id +
+func (client *Client) BuildAuthorizationUrl(state string) string {
+	url := client.Provider.Endpoints.Authorization + "?client_id=" + client.Id +
 		"&redirect_uri=" + url.QueryEscape(strings.Join(client.RedirectUris, ",")) +
 		"&response_type=code" + // this has to be set to "code"
-		"&state=" + state +
 		"&scope=" + strings.Join(client.Scope, "+")
+	if state != "" {
+		url += "&state=" + state
+	}
+	return url
 }
 
 func (client *Client) InitiateLoginFlow(loginUrl string) error {
@@ -90,7 +93,7 @@ func (client *Client) FetchCSRFToken(flowUrl string) error {
 	return fmt.Errorf("failed to extract CSRF token: not found")
 }
 
-func (client *Client) FetchTokenFromAuthenticationServer(code string, remoteUrl string, state string) ([]byte, error) {
+func (client *Client) FetchTokenFromAuthenticationServer(code string, state string) ([]byte, error) {
 	body := url.Values{
 		"grant_type":    {"authorization_code"},
 		"client_id":     {client.Id},
@@ -104,7 +107,7 @@ func (client *Client) FetchTokenFromAuthenticationServer(code string, remoteUrl 
 	if state != "" {
 		body["state"] = []string{state}
 	}
-	res, err := http.PostForm(remoteUrl, body)
+	res, err := http.PostForm(client.Provider.Endpoints.Token, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ID token: %s", err)
 	}

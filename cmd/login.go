@@ -2,12 +2,9 @@ package cmd
 
 import (
 	opaal "davidallendj/opaal/internal"
-	cache "davidallendj/opaal/internal/cache/sqlite"
 	"davidallendj/opaal/internal/oauth"
-	"davidallendj/opaal/internal/oidc"
 	"fmt"
 	"os"
-	"slices"
 
 	"github.com/spf13/cobra"
 )
@@ -25,73 +22,68 @@ var loginCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		for {
 			// try and find client with valid identity provider config
-			var provider *oidc.IdentityProvider
-			if target != "" {
-				// only try to use client with name give
-				index := slices.IndexFunc(config.Authentication.Clients, func(c oauth.Client) bool {
-					return target == c.Name
-				})
-				if index < 0 {
-					fmt.Printf("could not find the target client listed by name")
-					os.Exit(1)
-				}
-				client := config.Authentication.Clients[index]
-				_, err := cache.GetIdentityProvider(config.Options.CachePath, client.Issuer)
-				if err != nil {
+			// var provider *oidc.IdentityProvider
+			// if target != "" {
+			// 	// only try to use client with name give
+			// 	index := slices.IndexFunc(config.Authentication.Clients, func(c oauth.Client) bool {
+			// 		return target == c.Name
+			// 	})
+			// 	if index < 0 {
+			// 		fmt.Printf("could not find the target client listed by name")
+			// 		os.Exit(1)
+			// 	}
+			// 	client := config.Authentication.Clients[index]
+			// 	_, err := cache.GetIdentityProvider(config.Options.CachePath, client.Issuer)
+			// 	if err != nil {
 
-				}
+			// 	}
 
-			} else if targetIndex >= 0 {
-				// only try to use client by index
-				targetCount := len(config.Authentication.Clients) - 1
-				if targetIndex > targetCount {
-					fmt.Printf("target index out of range (found %d)", targetCount)
-				}
-				client := config.Authentication.Clients[targetIndex]
-				_, err := cache.GetIdentityProvider(config.Options.CachePath, client.Issuer)
-				if err != nil {
+			// } else if targetIndex >= 0 {
+			// 	// only try to use client by index
+			// 	targetCount := len(config.Authentication.Clients) - 1
+			// 	if targetIndex > targetCount {
+			// 		fmt.Printf("target index out of range (found %d)", targetCount)
+			// 	}
+			// 	client := config.Authentication.Clients[targetIndex]
+			// 	_, err := cache.GetIdentityProvider(config.Options.CachePath, client.Issuer)
+			// 	if err != nil {
 
-				}
-			} else {
-				for _, c := range config.Authentication.Clients {
-					// try to get identity provider info locally first
-					_, err := cache.GetIdentityProvider(config.Options.CachePath, c.Issuer)
-					if err != nil && !config.Options.CacheOnly {
-						fmt.Printf("fetching config from issuer: %v\n", c.Issuer)
-						// try to get info remotely by fetching
-						provider, err = oidc.FetchServerConfig(c.Issuer)
-						if err != nil {
-							fmt.Printf("failed to fetch server config: %v\n", err)
-							continue
-						}
-						client = c
-						// fetch the provider's JWKS
-						err := provider.FetchJwks()
-						if err != nil {
-							fmt.Printf("failed to fetch JWKS: %v\n", err)
-						}
-						break
-					}
-					// only test the first if --run-all flag is not set
-					if !config.Authentication.TestAllClients {
-						fmt.Printf("stopping after first test...\n\n\n")
-						break
-					}
-				}
-			}
+			// 	}
+			// } else {
+			// 	for _, c := range config.Authentication.Clients {
+			// 		// try to get identity provider info locally first
+			// 		_, err := cache.GetIdentityProvider(config.Options.CachePath, c.Issuer)
+			// 		if err != nil && !config.Options.CacheOnly {
+			// 			fmt.Printf("fetching config from issuer: %v\n", c.Issuer)
+			// 			// try to get info remotely by fetching
+			// 			provider, err = oidc.FetchServerConfig(c.Issuer)
+			// 			if err != nil {
+			// 				fmt.Printf("failed to fetch server config: %v\n", err)
+			// 				continue
+			// 			}
+			// 			client = c
+			// 			// fetch the provider's JWKS
+			// 			err := provider.FetchJwks()
+			// 			if err != nil {
+			// 				fmt.Printf("failed to fetch JWKS: %v\n", err)
+			// 			}
+			// 			break
+			// 		}
+			// 		// only test the first if --run-all flag is not set
+			// 		if !config.Authentication.TestAllClients {
+			// 			fmt.Printf("stopping after first test...\n\n\n")
+			// 			break
+			// 		}
+			// 	}
+			// }
 
-			if provider == nil {
-				fmt.Printf("failed to retrieve provider config\n")
-				os.Exit(1)
-			}
-
-			// use clients to make SSO buttons that
-			for _, client := range config.Authentication.Clients {
-				MakeButton()
-			}
+			// if provider == nil {
+			// 	fmt.Printf("failed to retrieve provider config\n")
+			// 	os.Exit(1)
+			// }
 
 			// start the listener
-			err := opaal.Login(&config, &client, provider)
+			err := opaal.Login(&config)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 				os.Exit(1)

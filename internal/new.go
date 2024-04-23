@@ -29,7 +29,7 @@ func NewClientWithConfig(config *Config) *oauth.Client {
 		Id:           clients[0].Id,
 		Secret:       clients[0].Secret,
 		Name:         clients[0].Name,
-		Issuer:       clients[0].Issuer,
+		Provider:     clients[0].Provider,
 		Scope:        clients[0].Scope,
 		RedirectUris: clients[0].RedirectUris,
 	}
@@ -53,7 +53,7 @@ func NewClientWithConfigByName(config *Config, name string) *oauth.Client {
 
 func NewClientWithConfigByProvider(config *Config, issuer string) *oauth.Client {
 	index := slices.IndexFunc(config.Authentication.Clients, func(c oauth.Client) bool {
-		return c.Issuer == issuer
+		return c.Provider.Issuer == issuer
 	})
 
 	if index >= 0 {

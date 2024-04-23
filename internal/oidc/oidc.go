@@ -111,26 +111,11 @@ func (p *IdentityProvider) LoadServerConfig(path string) error {
 }
 
 func (p *IdentityProvider) FetchServerConfig() error {
-	// make a request to a server's openid-configuration
-	req, err := http.NewRequest(http.MethodGet, p.Issuer+"/.well-known/openid-configuration", bytes.NewBuffer([]byte{}))
+	tmp, err := FetchServerConfig(p.Issuer)
 	if err != nil {
-		return fmt.Errorf("failed to create a new request: %v", err)
+		return err
 	}
-
-	client := &http.Client{} // temp client to get info and not used in flow
-	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to do request: %v", err)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %v", err)
-	}
-	err = p.ParseServerConfig(body)
-	if err != nil {
-		return fmt.Errorf("failed to parse server config: %v", err)
-	}
+	p = tmp
 	return nil
 }
 
@@ -147,10 +132,15 @@ func FetchServerConfig(issuer string) (*IdentityProvider, error) {
 		return nil, fmt.Errorf("failed to do request: %v", err)
 	}
 
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP status code: %d", res.StatusCode)
+	}
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %v", err)
 	}
+
 	var p IdentityProvider
 	err = p.ParseServerConfig(body)
 	if err != nil {
