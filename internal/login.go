@@ -12,17 +12,9 @@ import (
 	"time"
 )
 
-func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider) error {
+func Login(config *Config) error {
 	if config == nil {
 		return fmt.Errorf("invalid config")
-	}
-
-	if client == nil {
-		return fmt.Errorf("invalid client")
-	}
-
-	if provider == nil {
-		return fmt.Errorf("invalid identity provider")
 	}
 
 	// make cache if it's not where expect
@@ -39,18 +31,12 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 		}
 
 		// print the authorization URL for sharing
-		var authorizationUrl = client.BuildAuthorizationUrl(provider.Endpoints.Authorization, state)
 		s := NewServerWithConfig(config)
-		fmt.Printf("Login with external identity provider:\n\n  %s/login\n  %s\n\n",
-			s.GetListenAddr(), authorizationUrl,
-		)
+		s.State = state
 
-		var button = MakeButton(authorizationUrl, "Login with "+client.Name)
 		var authzClient = oauth.NewClient()
 		authzClient.Scope = config.Authorization.Token.Scope
 
-		// authorize oauth client and listen for callback from provider
-		fmt.Printf("Waiting for authorization code redirect @%s/oidc/callback...\n", s.GetListenAddr())
 		params := server.ServerParams{
 			Verbose: config.Options.Verbose,
 			AuthProvider: &oidc.IdentityProvider{
@@ -66,8 +52,7 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 				Register:       config.Authorization.Endpoints.Register,
 			},
 			JwtBearerParams: flows.JwtBearerFlowParams{
-				Client:           authzClient,
-				IdentityProvider: provider,
+				Client: authzClient,
 				TrustedIssuer: &oauth.TrustedIssuer{
 					AllowAnySubject: false,
 					Issuer:          s.Addr,
@@ -87,7 +72,7 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 				Client: authzClient,
 			},
 		}
-		err = s.StartLogin(button, provider, client, params)
+		err = s.StartLogin(config.Authentication.Clients, params)
 		if errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("\n=========================================\nServer closed.\n=========================================\n\n")
 		} else if err != nil {
@@ -96,7 +81,7 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 
 	} else if config.Options.FlowType == "client_credentials" {
 		params := flows.ClientCredentialsFlowParams{
-			Client: client,
+			Client: nil, // # FIXME: need to do something about this being nil I think
 		}
 		_, err := NewClientCredentialsFlowWithConfig(config, params)
 		if err != nil {
@@ -107,14 +92,4 @@ func Login(config *Config, client *oauth.Client, provider *oidc.IdentityProvider
 	}
 
 	return nil
-}
-
-func MakeButton(url string, text string) string {
-	// check if we have http:// a
-	html := "<input type=\"button\" "
-	html += "class=\"button\" "
-	html += fmt.Sprintf("onclick=\"window.location.href='%s';\" ", url)
-	html += fmt.Sprintf("value=\"%s\"", text)
-	return html
-	// return "<a href=\"" + url + "\"> " + text + "</a>"
 }

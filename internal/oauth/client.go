@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"davidallendj/opaal/internal/oidc"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -24,15 +25,15 @@ const (
 
 type Client struct {
 	http.Client
-	Id                      string   `db:"id" yaml:"id"`
-	Secret                  string   `db:"secret" yaml:"secret"`
-	Name                    string   `db:"name" yaml:"name"`
-	Description             string   `db:"description" yaml:"description"`
-	Issuer                  string   `db:"issuer" yaml:"issuer"`
-	RegistrationAccessToken string   `db:"registration_access_token" yaml:"registration-access-token"`
-	RedirectUris            []string `db:"redirect_uris" yaml:"redirect-uris"`
-	Scope                   []string `db:"scope" yaml:"scope"`
-	Audience                []string `db:"audience" yaml:"audience"`
+	Id                      string                `db:"id" yaml:"id"`
+	Secret                  string                `db:"secret" yaml:"secret"`
+	Name                    string                `db:"name" yaml:"name"`
+	Description             string                `db:"description" yaml:"description"`
+	Provider                oidc.IdentityProvider `db:"issuer" yaml:"provider"`
+	RegistrationAccessToken string                `db:"registration_access_token" yaml:"registration-access-token"`
+	RedirectUris            []string              `db:"redirect_uris" yaml:"redirect-uris"`
+	Scope                   []string              `db:"scope" yaml:"scope"`
+	Audience                []string              `db:"audience" yaml:"audience"`
 	FlowId                  string
 	CsrfToken               string
 }

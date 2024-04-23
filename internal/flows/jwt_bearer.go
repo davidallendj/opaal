@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"davidallendj/opaal/internal/oauth"
-	"davidallendj/opaal/internal/oidc"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,14 +18,14 @@ import (
 )
 
 type JwtBearerFlowParams struct {
-	AccessToken      string
-	IdToken          string
-	IdentityProvider *oidc.IdentityProvider
-	TrustedIssuer    *oauth.TrustedIssuer
-	Client           *oauth.Client
-	Refresh          bool
-	Verbose          bool
-	KeyPath          string
+	AccessToken string
+	IdToken     string
+	// IdentityProvider *oidc.IdentityProvider
+	TrustedIssuer *oauth.TrustedIssuer
+	Client        *oauth.Client
+	Refresh       bool
+	Verbose       bool
+	KeyPath       string
 }
 
 type JwtBearerFlowEndpoints struct {
@@ -39,22 +38,27 @@ type JwtBearerFlowEndpoints struct {
 func NewJwtBearerFlow(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) (string, error) {
 	// 1. verify that the JWT from the issuer is valid using all keys
 	var (
-		idp           = params.IdentityProvider
+		// idp           = params.IdentityProvider
 		accessToken   = params.AccessToken
 		idToken       = params.IdToken
 		client        = params.Client
 		trustedIssuer = params.TrustedIssuer
 		verbose       = params.Verbose
 	)
+
+	// pre-condition checks to make sure certain variables are set
+	if client == nil {
+		return "", fmt.Errorf("invalid client (client is nil)")
+	}
 	if accessToken != "" {
-		_, err := jws.Verify([]byte(accessToken), jws.WithKeySet(idp.KeySet), jws.WithValidateKey(true))
+		_, err := jws.Verify([]byte(accessToken), jws.WithKeySet(client.Provider.KeySet), jws.WithValidateKey(true))
 		if err != nil {
 			return "", fmt.Errorf("failed to verify access token: %v", err)
 		}
 	}
 
 	if idToken != "" {
-		_, err := jws.Verify([]byte(idToken), jws.WithKeySet(idp.KeySet), jws.WithValidateKey(true))
+		_, err := jws.Verify([]byte(idToken), jws.WithKeySet(client.Provider.KeySet), jws.WithValidateKey(true))
 		if err != nil {
 			return "", fmt.Errorf("failed to verify ID token: %v", err)
 		}
@@ -126,7 +130,7 @@ func NewJwtBearerFlow(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) (s
 	// TODO: add trusted issuer to cache if successful
 
 	// 4. create a new JWT based on the claims from the identity provider and sign
-	parsedIdToken, err := jwt.ParseString(idToken, jwt.WithKeySet(idp.KeySet))
+	parsedIdToken, err := jwt.ParseString(idToken, jwt.WithKeySet(client.Provider.KeySet))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse ID token: %v", err)
 	}
@@ -242,7 +246,7 @@ func ForwardToken(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) error 
 	var (
 		client  = params.Client
 		idToken = params.IdToken
-		idp     = params.IdentityProvider
+		// idp     = params.IdentityProvider
 		verbose = params.Verbose
 	)
 
@@ -250,7 +254,7 @@ func ForwardToken(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) error 
 	if verbose {
 		fmt.Printf("Fetching JWKS from authentication server for verification...\n")
 	}
-	err := idp.FetchJwks()
+	err := client.Provider.FetchJwks()
 	if err != nil {
 		return fmt.Errorf("failed to fetch JWK: %v", err)
 	} else {
@@ -260,7 +264,7 @@ func ForwardToken(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) error 
 		}
 
 		ti := &oauth.TrustedIssuer{
-			Issuer:    idp.Issuer,
+			Issuer:    client.Provider.Issuer,
 			Subject:   "1",
 			ExpiresAt: time.Now().Add(time.Second * 3600),
 		}

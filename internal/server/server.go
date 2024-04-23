@@ -58,15 +58,40 @@ func (s *Server) GetListenAddr() string {
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
-func (s *Server) StartLogin(buttons string, provider *oidc.IdentityProvider, client *oauth.Client, params ServerParams) error {
+func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 	var (
-		target   = ""
-		callback = ""
+		target   string
+		callback string
+		client   *oauth.Client
+		sso      string
 	)
 
 	// check if callback is set
 	if s.Callback == "" {
 		callback = "/oidc/callback"
+	}
+
+	// make the login page SSO buttons and authorization URLs to write to stdout
+	buttons := ""
+	fmt.Printf("Login with external identity providers: \n")
+	for i, client := range clients {
+		// fetch provider configuration before adding button
+		p, err := oidc.FetchServerConfig(client.Provider.Issuer)
+		if err != nil {
+			fmt.Printf("failed to fetch server config: %v\n", err)
+			continue
+		}
+
+		// if we're able to get the config, go ahead and try to fetch jwks too
+		if err = p.FetchJwks(); err != nil {
+			fmt.Printf("failed to fetch JWKS: %v\n", err)
+			continue
+		}
+
+		clients[i].Provider = *p
+		buttons += makeButton(fmt.Sprintf("/login?sso=%s", client.Id), client.Name)
+		url := client.BuildAuthorizationUrl(s.State)
+		fmt.Printf("\t%s\n", url)
 	}
 
 	var code string
@@ -93,20 +118,32 @@ func (s *Server) StartLogin(buttons string, provider *oidc.IdentityProvider, cli
 		// add target if query exists
 		if r != nil {
 			target = r.URL.Query().Get("target")
+			sso = r.URL.Query().Get("sso")
+
+			// TODO: get client from list and build the authorization URL string
+			index := slices.IndexFunc(clients, func(c oauth.Client) bool {
+				return c.Id == sso
+			})
+
+			// TODO: redirect the user to authorization URL and return from func
+			foundClient := index >= 0
+			if foundClient {
+				client = &clients[index]
+
+				url := client.BuildAuthorizationUrl(s.State)
+				fmt.Printf("Redirect URL: %s\n", url)
+				http.Redirect(w, r, url, http.StatusFound)
+				return
+			}
 		}
+
 		// show login page with notice to redirect
 		template, err := gonja.FromFile("pages/index.html")
 		if err != nil {
 			panic(err)
 		}
 
-		// form, err := os.ReadFile("pages/login.html")
-		// if err != nil {
-		// 	fmt.Printf("failed to load login form: %v", err)
-		// }
-
 		data := exec.NewContext(map[string]interface{}{
-			// "loginForm":    string(form),
 			"loginButtons": buttons,
 		})
 
@@ -157,7 +194,7 @@ func (s *Server) StartLogin(buttons string, provider *oidc.IdentityProvider, cli
 		// use refresh token provided to do a refresh token grant
 		refreshToken := r.URL.Query().Get("refresh-token")
 		if refreshToken != "" {
-			_, err := params.JwtBearerParams.Client.PerformRefreshTokenGrant(provider.Endpoints.Token, refreshToken)
+			_, err := params.JwtBearerParams.Client.PerformRefreshTokenGrant(client.Provider.Endpoints.Token, refreshToken)
 			if err != nil {
 				fmt.Printf("failed to perform refresh token grant: %v\n", err)
 				http.Redirect(w, r, "/error", http.StatusInternalServerError)
@@ -195,10 +232,15 @@ func (s *Server) StartLogin(buttons string, provider *oidc.IdentityProvider, cli
 				fmt.Printf("Authorization code: %v\n", code)
 			}
 
+			// make sure we have the correct client to use
+			if client == nil {
+				fmt.Printf("failed to find valid client")
+				return
+			}
+
 			// use code from response and exchange for bearer token (with ID token)
 			bearerToken, err := client.FetchTokenFromAuthenticationServer(
 				code,
-				provider.Endpoints.Token,
 				s.State,
 			)
 			if err != nil {
@@ -228,6 +270,7 @@ func (s *Server) StartLogin(buttons string, provider *oidc.IdentityProvider, cli
 			// complete JWT bearer flow to receive access token from authorization server
 			// fmt.Printf("bearer: %v\n", string(bearerToken))
 			params.JwtBearerParams.IdToken = data["id_token"].(string)
+			params.JwtBearerParams.Client = client
 			accessToken, err = flows.NewJwtBearerFlow(params.JwtBearerEndpoints, params.JwtBearerParams)
 			if err != nil {
 				fmt.Printf("failed to complete JWT bearer flow: %v\n", err)
@@ -406,10 +449,12 @@ func (s *Server) StartIdentityProvider() error {
 		// example username and password so do simplified authorization code flow
 		if username == "ochami" && password == "ochami" {
 			client := oauth.Client{
-				Id:           "ochami",
-				Secret:       "ochami",
-				Name:         "ochami",
-				Issuer:       "http://127.0.0.1:3333",
+				Id:     "ochami",
+				Secret: "ochami",
+				Name:   "ochami",
+				Provider: oidc.IdentityProvider{
+					Issuer: "http://127.0.0.1:3333",
+				},
 				RedirectUris: []string{fmt.Sprintf("http://%s:%d%s", s.Host, s.Port, callback)},
 			}
 
@@ -540,4 +585,14 @@ func (s *Server) StartIdentityProvider() error {
 
 	s.Handler = r
 	return s.ListenAndServe()
+}
+
+func makeButton(url string, text string) string {
+	// check if we have http:// a
+	html := "<input type=\"button\" "
+	html += "class=\"button\" "
+	html += fmt.Sprintf("onclick=\"window.location.href='%s';\" ", url)
+	html += fmt.Sprintf("value=\"%s\">", text)
+	return html
+	// return "<a href=\"" + url + "\"> " + text + "</a>"
 }
