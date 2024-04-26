@@ -212,19 +212,19 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 				http.Redirect(w, r, "/error", http.StatusInternalServerError)
 				return
 			}
+		} else {
+			// FIXME: I think this probably needs to reworked or removed
+			// NOTE: this logic fetches a token for services to retrieve like BSS
+			// perform a client credentials grant and return a token
+			var err error
+			accessToken, err = flows.NewClientCredentialsFlow(params.ClientCredentialsEndpoints, params.ClientCredentialsParams)
+			if err != nil {
+				fmt.Printf("failed to perform client credentials flow: %v\n", err)
+				http.Redirect(w, r, "/error", http.StatusInternalServerError)
+				return
+			}
+			w.Write([]byte(accessToken))
 		}
-		// FIXME: I think this probably needs to reworked or removed
-		// else {
-		// 	// perform a client credentials grant and return a token
-		// 	var err error
-		// 	accessToken, err = flows.NewClientCredentialsFlow(params.ClientCredentialsEndpoints, params.ClientCredentialsParams)
-		// 	if err != nil {
-		// 		fmt.Printf("failed to perform client credentials flow: %v\n", err)
-		// 		http.Redirect(w, r, "/error", http.StatusInternalServerError)
-		// 		return
-		// 	}
-		// 	w.Write([]byte(accessToken))
-		// }
 	})
 	r.HandleFunc(callback, func(w http.ResponseWriter, r *http.Request) {
 		// get the code from the OIDC provider
