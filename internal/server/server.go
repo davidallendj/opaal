@@ -212,17 +212,19 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 				http.Redirect(w, r, "/error", http.StatusInternalServerError)
 				return
 			}
-		} else {
-			// perform a client credentials grant and return a token
-			var err error
-			accessToken, err = flows.NewClientCredentialsFlow(params.ClientCredentialsEndpoints, params.ClientCredentialsParams)
-			if err != nil {
-				fmt.Printf("failed to perform client credentials flow: %v\n", err)
-				http.Redirect(w, r, "/error", http.StatusInternalServerError)
-				return
-			}
-			w.Write([]byte(accessToken))
 		}
+		// FIXME: I think this probably needs to reworked or removed
+		// else {
+		// 	// perform a client credentials grant and return a token
+		// 	var err error
+		// 	accessToken, err = flows.NewClientCredentialsFlow(params.ClientCredentialsEndpoints, params.ClientCredentialsParams)
+		// 	if err != nil {
+		// 		fmt.Printf("failed to perform client credentials flow: %v\n", err)
+		// 		http.Redirect(w, r, "/error", http.StatusInternalServerError)
+		// 		return
+		// 	}
+		// 	w.Write([]byte(accessToken))
+		// }
 	})
 	r.HandleFunc(callback, func(w http.ResponseWriter, r *http.Request) {
 		// get the code from the OIDC provider
@@ -589,10 +591,12 @@ func (s *Server) StartIdentityProvider() error {
 
 func makeButton(url string, text string) string {
 	// check if we have http:// a
-	html := "<input type=\"button\" "
+	// html := "<input type=\"button\" "
+	// html += fmt.Sprintf("onclick=\"window.location.href='%s';\" ", url)
+	// html += fmt.Sprintf("value=\"%s\">", text)
+	html := "<a "
 	html += "class=\"button\" "
-	html += fmt.Sprintf("onclick=\"window.location.href='%s';\" ", url)
-	html += fmt.Sprintf("value=\"%s\">", text)
+	html += fmt.Sprintf("href=\"%s\">%s", url, text)
+	html += "</a>"
 	return html
-	// return "<a href=\"" + url + "\"> " + text + "</a>"
 }
