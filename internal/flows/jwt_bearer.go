@@ -23,6 +23,7 @@ type JwtBearerFlowParams struct {
 	// IdentityProvider *oidc.IdentityProvider
 	TrustedIssuer *oauth.TrustedIssuer
 	Client        *oauth.Client
+	Audience      []string
 	Refresh       bool
 	Verbose       bool
 	KeyPath       string
@@ -142,6 +143,11 @@ func NewJwtBearerFlow(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) (s
 	payload["nbf"] = time.Now().Unix()
 	payload["exp"] = time.Now().Add(time.Second * 3600 * 16).Unix()
 	payload["sub"] = "opaal"
+
+	// if an "audience" value is set, then override the token endpoint value
+	if len(params.Audience) > 0 {
+		payload["aud"] = params.Audience
+	}
 
 	// include the offline_access scope if refresh tokens are enabled
 	if params.Refresh {

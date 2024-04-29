@@ -45,6 +45,7 @@ type TokenOptions struct {
 	Forwarding bool          `yaml:"forwarding"`
 	Refresh    bool          `yaml:"refresh"`
 	Scope      []string      `yaml:"scope"`
+	//TODO: allow specifying audience in returned token
 }
 
 type Authentication struct {
@@ -55,9 +56,10 @@ type Authentication struct {
 }
 
 type Authorization struct {
+	Token     TokenOptions `yaml:"token"`
 	Endpoints Endpoints    `yaml:"endpoints"`
 	KeyPath   string       `yaml:"key-path"`
-	Token     TokenOptions `yaml:"token"`
+	Audience  []string     `yaml:"audience"` // NOTE: overrides the "aud" claim in token sent to authorization server
 }
 
 type Config struct {

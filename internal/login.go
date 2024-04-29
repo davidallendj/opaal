@@ -60,8 +60,9 @@ func Login(config *Config) error {
 					ExpiresAt:       time.Now().Add(config.Authorization.Token.Duration),
 					Scope:           []string{},
 				},
-				Verbose: config.Options.Verbose,
-				Refresh: config.Authorization.Token.Refresh,
+				Verbose:  config.Options.Verbose,
+				Refresh:  config.Authorization.Token.Refresh,
+				Audience: config.Authorization.Audience,
 			},
 			ClientCredentialsEndpoints: flows.ClientCredentialsFlowEndpoints{
 				Clients:   config.Authorization.Endpoints.Clients,
