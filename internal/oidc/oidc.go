@@ -171,18 +171,19 @@ func (p *IdentityProvider) UpdateEndpoints(other *IdentityProvider) {
 
 func UpdateEndpoints(eps *Endpoints, other *Endpoints) {
 	// only update endpoints that are not empty
-	var UpdateIf = func(ep *string, s string) {
+	var UpdateIfEmpty = func(ep *string, s string) {
 		if ep != nil {
-			if *ep != "" {
+			if *ep == "" {
 				*ep = s
+				fmt.Printf("updated %s\n", s)
 			}
 		}
 	}
-	UpdateIf(&eps.Config, other.Config)
-	UpdateIf(&eps.Authorization, other.Authorization)
-	UpdateIf(&eps.Token, other.Token)
-	UpdateIf(&eps.Revocation, other.Revocation)
-	UpdateIf(&eps.Introspection, other.Introspection)
-	UpdateIf(&eps.UserInfo, other.UserInfo)
-	UpdateIf(&eps.JwksUri, other.JwksUri)
+	UpdateIfEmpty(&eps.Config, other.Config)
+	UpdateIfEmpty(&eps.Authorization, other.Authorization)
+	UpdateIfEmpty(&eps.Token, other.Token)
+	UpdateIfEmpty(&eps.Revocation, other.Revocation)
+	UpdateIfEmpty(&eps.Introspection, other.Introspection)
+	UpdateIfEmpty(&eps.UserInfo, other.UserInfo)
+	UpdateIfEmpty(&eps.JwksUri, other.JwksUri)
 }

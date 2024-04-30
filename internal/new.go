@@ -91,8 +91,9 @@ func NewServerWithConfig(conf *Config) *server.Server {
 		Host: host,
 		Port: port,
 		Issuer: server.IdentityProviderServer{
-			Host: conf.Server.Issuer.Host,
-			Port: conf.Server.Issuer.Port,
+			Host:      conf.Server.Issuer.Host,
+			Port:      conf.Server.Issuer.Port,
+			Endpoints: conf.Server.Issuer.Endpoints,
 		},
 	}
 	return server

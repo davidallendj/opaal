@@ -22,7 +22,7 @@ var serveCmd = &cobra.Command{
 		s := opaal.NewServerWithConfig(&config)
 		// FIXME: change how the server address is set with `NewServerWithConfig`
 		s.Server.Addr = fmt.Sprintf("%s:%d", s.Issuer.Host, s.Issuer.Port)
-		err := s.StartIdentityProvider(endpoints)
+		err := s.StartIdentityProvider()
 		if errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("Identity provider server closed.\n")
 		} else if err != nil {

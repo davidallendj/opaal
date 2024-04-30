@@ -22,7 +22,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
-func (s *Server) StartIdentityProvider(eps oidc.Endpoints) error {
+func (s *Server) StartIdentityProvider() error {
 	// NOTE: this example does NOT implement CSRF tokens nor use them
 
 	// create an example identity provider
@@ -44,7 +44,7 @@ func (s *Server) StartIdentityProvider(eps oidc.Endpoints) error {
 		Token:         "http://" + s.Addr + "/oauth/token",
 		JwksUri:       "http://" + s.Addr + "/.well-known/jwks.json",
 	}
-	oidc.UpdateEndpoints(&eps, &defaultEps)
+	oidc.UpdateEndpoints(&s.Issuer.Endpoints, &defaultEps)
 
 	// generate key pair used to sign JWKS and create JWTs
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -84,9 +84,9 @@ func (s *Server) StartIdentityProvider(eps oidc.Endpoints) error {
 		// create config JSON to serve with GET request
 		config := map[string]any{
 			"issuer":                 "http://" + s.Addr,
-			"authorization_endpoint": eps.Authorization,
-			"token_endpoint":         eps.Token,
-			"jwks_uri":               eps.JwksUri,
+			"authorization_endpoint": s.Issuer.Endpoints.Authorization,
+			"token_endpoint":         s.Issuer.Endpoints.Token,
+			"jwks_uri":               s.Issuer.Endpoints.JwksUri,
 			"scopes_supported": []string{
 				"openid",
 				"profile",

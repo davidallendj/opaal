@@ -2,6 +2,7 @@ package opaal
 
 import (
 	"davidallendj/opaal/internal/oauth"
+	"davidallendj/opaal/internal/oidc"
 	"log"
 	"os"
 	"path/filepath"
@@ -72,11 +73,18 @@ type Config struct {
 }
 
 func NewConfig() Config {
-	return Config{
+	config := Config{
 		Version: goutil.GetCommit(),
 		Server: server.Server{
 			Host: "127.0.0.1",
 			Port: 3333,
+			Issuer: server.IdentityProviderServer{
+				Endpoints: oidc.Endpoints{
+					Authorization: "http://127.0.0.1/oauth/authorize",
+					Token:         "http://127.0.0.1/oauth/token",
+					JwksUri:       "http://127.0.0.1/.well-known/jwks.json",
+				},
+			},
 		},
 		Options: Options{
 			RunOnce:     true,
@@ -99,6 +107,7 @@ func NewConfig() Config {
 			},
 		},
 	}
+	return config
 }
 
 func LoadConfig(path string) Config {
