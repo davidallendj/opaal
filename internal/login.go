@@ -42,8 +42,9 @@ func Login(config *Config) error {
 			AuthProvider: &oidc.IdentityProvider{
 				Issuer: config.Authorization.Endpoints.Issuer,
 				Endpoints: oidc.Endpoints{
-					Config:  config.Authorization.Endpoints.Config,
-					JwksUri: config.Authorization.Endpoints.JwksUri,
+					Config:        config.Authorization.Endpoints.Config,
+					Authorization: config.Authorization.Endpoints.Authorize,
+					JwksUri:       config.Authorization.Endpoints.JwksUri,
 				},
 			},
 			JwtBearerEndpoints: flows.JwtBearerFlowEndpoints{

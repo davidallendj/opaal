@@ -90,7 +90,7 @@ func NewServerWithConfig(conf *Config) *server.Server {
 		},
 		Host: host,
 		Port: port,
-		Issuer: server.Issuer{
+		Issuer: server.IdentityProviderServer{
 			Host: conf.Server.Issuer.Host,
 			Port: conf.Server.Issuer.Port,
 		},
