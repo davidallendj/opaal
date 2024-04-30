@@ -57,7 +57,7 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 
 	// make the login page SSO buttons and authorization URLs to write to stdout
 	buttons := ""
-	fmt.Printf("Login with external identity providers: \n")
+	fmt.Printf("Login with an identity provider: \n")
 	for i, client := range clients {
 		// fetch provider configuration before adding button
 		p, err := oidc.FetchServerConfig(client.Provider.Issuer)
@@ -74,8 +74,7 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 
 		clients[i].Provider = *p
 		buttons += makeButton(fmt.Sprintf("/login?sso=%s", client.Id), client.Name)
-		url := client.BuildAuthorizationUrl(s.State)
-		fmt.Printf("\t%s\n", url)
+		fmt.Printf("\t%s: /login?sso=%s\n", client.Name, client.Id)
 	}
 
 	var code string
@@ -115,7 +114,9 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 				client = &clients[index]
 
 				url := client.BuildAuthorizationUrl(s.State)
-				fmt.Printf("Redirect URL: %s\n", url)
+				if params.Verbose {
+					fmt.Printf("Redirect URL: %s\n", url)
+				}
 				http.Redirect(w, r, url, http.StatusFound)
 				return
 			}

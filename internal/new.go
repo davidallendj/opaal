@@ -94,6 +94,7 @@ func NewServerWithConfig(conf *Config) *server.Server {
 			Host:      conf.Server.Issuer.Host,
 			Port:      conf.Server.Issuer.Port,
 			Endpoints: conf.Server.Issuer.Endpoints,
+			Clients:   conf.Server.Issuer.Clients,
 		},
 	}
 	return server

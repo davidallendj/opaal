@@ -49,8 +49,8 @@ func (s *Server) StartIdentityProvider() error {
 
 	// update endpoints that have values set
 	defaultEps := oidc.Endpoints{
-		Authorization: "http://" + s.Addr + "/oauth/authorize",
-		Token:         "http://" + s.Addr + "/oauth/token",
+		Authorization: "http://" + s.Addr + "/oauth2/authorize",
+		Token:         "http://" + s.Addr + "/oauth2/token",
 		JwksUri:       "http://" + s.Addr + "/.well-known/jwks.json",
 	}
 	oidc.UpdateEndpoints(&s.Issuer.Endpoints, &defaultEps)
@@ -266,9 +266,13 @@ func (s *Server) StartIdentityProvider() error {
 			return
 		}
 
-		// check that we're using the default registered client
-		if clientId != "ochami" {
-			fmt.Printf("invalid client\n")
+		// find a valid client
+		index := slices.IndexFunc(s.Issuer.Clients, func(c RegisteredClient) bool {
+			fmt.Printf("%s ? %s\n", c.Id, clientId)
+			return c.Id == clientId
+		})
+		if index < 0 {
+			fmt.Printf("no valid client found")
 			return
 		}
 

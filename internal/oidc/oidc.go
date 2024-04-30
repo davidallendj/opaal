@@ -175,7 +175,6 @@ func UpdateEndpoints(eps *Endpoints, other *Endpoints) {
 		if ep != nil {
 			if *ep == "" {
 				*ep = s
-				fmt.Printf("updated %s\n", s)
 			}
 		}
 	}
