@@ -80,9 +80,9 @@ func NewConfig() Config {
 			Port: 3333,
 			Issuer: server.IdentityProviderServer{
 				Endpoints: oidc.Endpoints{
-					Authorization: "http://127.0.0.1/oauth/authorize",
-					Token:         "http://127.0.0.1/oauth/token",
-					JwksUri:       "http://127.0.0.1/.well-known/jwks.json",
+					Authorization: "",
+					Token:         "",
+					JwksUri:       "",
 				},
 			},
 		},
