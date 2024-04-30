@@ -173,7 +173,7 @@ func (s *Server) StartIdentityProvider() error {
 			http.Redirect(w, r, "/browser/login", http.StatusUnauthorized)
 		}
 	})
-	r.HandleFunc("/oauth/token", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
 		// check for authorization code and make sure it's valid
@@ -247,7 +247,7 @@ func (s *Server) StartIdentityProvider() error {
 		fmt.Printf("bearer: %s\n", string(b))
 		w.Write(b)
 	})
-	r.HandleFunc("/oauth/authorize", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/oauth2/authorize", func(w http.ResponseWriter, r *http.Request) {
 		var (
 			responseType = r.URL.Query().Get("response_type")
 			clientId     = r.URL.Query().Get("client_id")
