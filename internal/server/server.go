@@ -18,16 +18,17 @@ import (
 
 type Server struct {
 	*http.Server
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Callback string `yaml:"callback"`
-	State    string `yaml:"state"`
-	Issuer   Issuer `yaml:"issuer"`
+	Host     string                 `yaml:"host"`
+	Port     int                    `yaml:"port"`
+	Callback string                 `yaml:"callback"`
+	State    string                 `yaml:"state"`
+	Issuer   IdentityProviderServer `yaml:"issuer"`
 }
 
-type Issuer struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
+type IdentityProviderServer struct {
+	Host      string         `yaml:"host"`
+	Port      int            `yaml:"port"`
+	Endpoints oidc.Endpoints `yaml:"endpoints"`
 }
 
 type ServerParams struct {

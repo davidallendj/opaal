@@ -22,7 +22,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
-func (s *Server) StartIdentityProvider() error {
+func (s *Server) StartIdentityProvider(eps oidc.Endpoints) error {
 	// NOTE: this example does NOT implement CSRF tokens nor use them
 
 	// create an example identity provider
@@ -37,6 +37,14 @@ func (s *Server) StartIdentityProvider() error {
 	if s.Callback == "" {
 		callback = "/oidc/callback"
 	}
+
+	// update endpoints that have values set
+	defaultEps := oidc.Endpoints{
+		Authorization: "http://" + s.Addr + "/oauth/authorize",
+		Token:         "http://" + s.Addr + "/oauth/token",
+		JwksUri:       "http://" + s.Addr + "/.well-known/jwks.json",
+	}
+	oidc.UpdateEndpoints(&eps, &defaultEps)
 
 	// generate key pair used to sign JWKS and create JWTs
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -72,14 +80,13 @@ func (s *Server) StartIdentityProvider() error {
 		w.Write(b)
 	})
 
-	// TODO: create .well-known openid configuration
 	r.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, r *http.Request) {
 		// create config JSON to serve with GET request
 		config := map[string]any{
 			"issuer":                 "http://" + s.Addr,
-			"authorization_endpoint": "http://" + s.Addr + "/oauth/authorize",
-			"token_endpoint":         "http://" + s.Addr + "/oauth/token",
-			"jwks_uri":               "http://" + s.Addr + "/.well-known/jwks.json",
+			"authorization_endpoint": eps.Authorization,
+			"token_endpoint":         eps.Token,
+			"jwks_uri":               eps.JwksUri,
 			"scopes_supported": []string{
 				"openid",
 				"profile",

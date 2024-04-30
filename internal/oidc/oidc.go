@@ -164,3 +164,25 @@ func (p *IdentityProvider) FetchJwks() error {
 
 	return nil
 }
+
+func (p *IdentityProvider) UpdateEndpoints(other *IdentityProvider) {
+	UpdateEndpoints(&p.Endpoints, &other.Endpoints)
+}
+
+func UpdateEndpoints(eps *Endpoints, other *Endpoints) {
+	// only update endpoints that are not empty
+	var UpdateIf = func(ep *string, s string) {
+		if ep != nil {
+			if *ep != "" {
+				*ep = s
+			}
+		}
+	}
+	UpdateIf(&eps.Config, other.Config)
+	UpdateIf(&eps.Authorization, other.Authorization)
+	UpdateIf(&eps.Token, other.Token)
+	UpdateIf(&eps.Revocation, other.Revocation)
+	UpdateIf(&eps.Introspection, other.Introspection)
+	UpdateIf(&eps.UserInfo, other.UserInfo)
+	UpdateIf(&eps.JwksUri, other.JwksUri)
+}
