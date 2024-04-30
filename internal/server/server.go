@@ -25,12 +25,6 @@ type Server struct {
 	Issuer   IdentityProviderServer `yaml:"issuer"`
 }
 
-type IdentityProviderServer struct {
-	Host      string         `yaml:"host"`
-	Port      int            `yaml:"port"`
-	Endpoints oidc.Endpoints `yaml:"endpoints"`
-}
-
 type ServerParams struct {
 	AuthProvider               *oidc.IdentityProvider
 	Verbose                    bool

@@ -3,7 +3,6 @@ package server
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"davidallendj/opaal/internal/oauth"
 	"davidallendj/opaal/internal/oidc"
 	"encoding/json"
 	"fmt"
@@ -22,6 +21,22 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
+// TODO: make this a completely separate server
+type IdentityProviderServer struct {
+	Host      string             `yaml:"host"`
+	Port      int                `yaml:"port"`
+	Endpoints oidc.Endpoints     `yaml:"endpoints"`
+	Clients   []RegisteredClient `yaml:"clients"`
+}
+
+// NOTE: could we use a oauth.Client here instead??
+type RegisteredClient struct {
+	Id           string   `yaml:"id"`
+	Secret       string   `yaml:"secret"`
+	Name         string   `yaml:"name"`
+	RedirectUris []string `yaml:"redirect-uris"`
+}
+
 func (s *Server) StartIdentityProvider() error {
 	// NOTE: this example does NOT implement CSRF tokens nor use them
 
@@ -29,14 +44,8 @@ func (s *Server) StartIdentityProvider() error {
 	var (
 		r = chi.NewRouter()
 		// clients  = []oauth.Client{}
-		callback    = ""
 		activeCodes = []string{}
 	)
-
-	// check if callback is set
-	if s.Callback == "" {
-		callback = "/oidc/callback"
-	}
 
 	// update endpoints that have values set
 	defaultEps := oidc.Endpoints{
@@ -138,21 +147,18 @@ func (s *Server) StartIdentityProvider() error {
 		username := r.Form.Get("username")
 		password := r.Form.Get("password")
 
+		if len(s.Issuer.Clients) <= 0 {
+			fmt.Printf("no registered clients found with identity provider (add them in config)\n")
+			return
+		}
+
 		// example username and password so do simplified authorization code flow
-		if username == "ochami" && password == "ochami" {
-			client := oauth.Client{
-				Id:     "ochami",
-				Secret: "ochami",
-				Name:   "ochami",
-				Provider: oidc.IdentityProvider{
-					Issuer: "http://127.0.0.1:3333",
-				},
-				RedirectUris: []string{fmt.Sprintf("http://%s:%d%s", s.Host, s.Port, callback)},
-			}
+		if username == "openchami" && password == "openchami" {
+			client := s.Issuer.Clients[0]
 
 			// check if there are any redirect URIs supplied
 			if len(client.RedirectUris) <= 0 {
-				fmt.Printf("no redirect URIs found")
+				fmt.Printf("no redirect URIs found for client %s (ID: %s)\n", client.Name, client.Id)
 				return
 			}
 			for _, url := range client.RedirectUris {
