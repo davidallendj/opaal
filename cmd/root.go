@@ -64,42 +64,117 @@ func initConfig() {
 	}
 }
 
-func initEnv() {
+func initEnv() error {
 	// set environment variables before by CLI, but after config
+	var errList []error
 	err := parseEnv("OPAAL_LOGIN_HOST", &config.Server.Host)
-	_ = err
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_LOGIN_HOST: %q", err))
+	}
 	err = parseEnv("OPAAL_LOGIN_PORT", &config.Server.Port)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_LOGIN_PORT: %q", err))
+	}
 	err = parseEnv("OPAAL_IDP_HOST", &config.Server.Issuer.Host)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_IDP_HOST: %q", err))
+	}
 	err = parseEnv("OPAAL_IDP_PORT", &config.Server.Issuer.Port)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_IDP_PORT: %q", err))
+	}
 
 	// authentication env vars
 	err = parseEnv("OPAAL_IDP_REGISTERED_CLIENTS", &config.Server.Issuer.Clients)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_IDP_REGISTERED_CLIENTS: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHN_CLIENTS", &config.Authentication.Clients)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHN_CLIENTS: %q", err))
+	}
 
 	// authorization token env vars
 	err = parseEnv("OPAAL_AUTHZ_TOKEN_FORWARDING", &config.Authorization)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_TOKEN_FORWARDING: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_TOKEN_REFRESH", &config.Authorization.Token.Refresh)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_TOKEN_REFRESH: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_TOKEN_DURATION", &config.Authorization.Token.Duration)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_TOKEN_DURATION: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_TOKEN_SCOPE", &config.Authorization.Token.Scope)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_TOKEN_SCOPE: %q", err))
+	}
 
 	// authorization endpoint env vars
 	err = parseEnv("OPAAL_AUTHZ_KEY_PATH", &config.Authorization.KeyPath)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_KEY_PATH: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_ENDPOINT_ISSUER", &config.Authorization.Endpoints.Issuer)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_ENDPOINT_ISSUER: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_ENDPOINT_CONFIG", &config.Authorization.Endpoints.Config)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_ENDPOINT_CONFIG: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_ENDPOINT_JWKS", &config.Authorization.Endpoints.JwksUri)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_ENDPOINT_JWKS: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_ENDPOINT_TRUSTED_ISSUER", &config.Authorization.Endpoints.TrustedIssuers)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_ENDPOINT_TRUSTED_ISSUER: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_ENDPOINT_CLIENTS", &config.Authorization.Endpoints.Clients)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_ENDPOINT_CILENTS: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_ENDPOINT_AUTHORIZE", &config.Authorization.Endpoints.Authorize)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_ENDPOINT_AUTHORIZE: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_ENDPOINT_REGISTER", &config.Authorization.Endpoints.Register)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_ENDPOINT_REGISTER: %q", err))
+	}
 	err = parseEnv("OPAAL_AUTHZ_ENDPOINT_TOKEN", &config.Authorization.Endpoints.Token)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_AUTHZ_ENDPOINT_TOKEN: %q", err))
+	}
 
 	// other miscellaneous option env vars
 	err = parseEnv("OPAAL_OPT_VERBOSE", &config.Options.Verbose)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_OPT_VERBOSE: %q", err))
+	}
 	err = parseEnv("OPAAL_OPT_RUN_ONCE", &config.Options.RunOnce)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_OPT_RUN_ONCE: %q", err))
+	}
 	err = parseEnv("OPAAL_OPT_OPEN_BROWSER", &config.Options.OpenBrowser)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_OPT_OPEN_BROWSER: %q", err))
+	}
 	err = parseEnv("OPAAL_OPT_CACHE_ONLY", &config.Options.CacheOnly)
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_OPT_CACHE_ONLY: %q", err))
+	}
 	err = parseEnv("OPAAL_OPT_CACHE_PATH", &config.Options.CachePath)
-
+	if err != nil {
+		errList = append(errList, fmt.Errorf("OPAAL_OPT_CACHE_PATH: %q", err))
+	}
+	if len(errList) > 0 {
+		err = fmt.Errorf("Error(s) parsing environment variables: %v", errList)
+	}
+	return err
 }
 
 func parseEnv(evar string, v interface{}) error {
