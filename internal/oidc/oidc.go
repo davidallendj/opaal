@@ -75,6 +75,43 @@ func NewIdentityProvider() *IdentityProvider {
 	return p
 }
 
+func (p *IdentityProvider) NewEndpoints() *Endpoints {
+	return &Endpoints{
+		Authorization: p.Issuer + "/oauth/authorize",
+		Token:         p.Issuer + "/oauth/token",
+		Revocation:    p.Issuer + "/oauth/revocation",
+		Introspection: p.Issuer + "/oauth/introspect",
+		UserInfo:      p.Issuer + "/oauth/userinfo",
+		JwksUri:       p.Issuer + "/oauth/discovery/keys",
+	}
+}
+
+func (p *IdentityProvider) NewSupported() *Supported {
+	return &Supported{
+		ResponseTypes: []string{"code"},
+		ResponseModes: []string{"query"},
+		GrantTypes: []string{
+			"authorization_code",
+			"client_credentials",
+			"refresh_token",
+		},
+		TokenEndpointAuthMethods: []string{
+			"client_secret_basic",
+			"client_secret_post",
+		},
+		SubjectTypes:            []string{"public"},
+		IdTokenSigningAlgValues: []string{"RS256"},
+		ClaimTypes:              []string{"normal"},
+		Claims: []string{
+			"iss",
+			"sub",
+			"aud",
+			"exp",
+			"iat",
+		},
+	}
+}
+
 func (p *IdentityProvider) ParseServerConfig(data []byte) error {
 	// parse JSON into IdentityProvider fields
 	var ep Endpoints

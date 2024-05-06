@@ -31,7 +31,6 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	initialize()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to start CLI: %s", err)
 		os.Exit(1)
@@ -39,14 +38,19 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&config.Options.Verbose, "verbose", "v", false, "set the verbose flag")
+	cobra.OnInitialize(initialize)
+	rootCmd.PersistentFlags().BoolVarP(&config.Options.Verbose, "verbose", "v", config.Options.Verbose, "set the verbose flag")
 	rootCmd.PersistentFlags().StringVarP(&confPath, "config", "c", "", "set the config path")
 	rootCmd.PersistentFlags().StringVar(&config.Options.CachePath, "cache", "", "set the cache path")
 }
 
 func initialize() {
 	initConfig()
-	initEnv()
+	err := initEnv()
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println("WARNING: Ignoring environment variables with errors.")
+	}
 }
 
 func initConfig() {

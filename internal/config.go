@@ -79,6 +79,8 @@ func NewConfig() Config {
 			Host: "127.0.0.1",
 			Port: 3333,
 			Issuer: server.IdentityProviderServer{
+				Host: "127.0.0.1",
+				Port: 3332,
 				Endpoints: oidc.Endpoints{
 					Authorization: "",
 					Token:         "",
