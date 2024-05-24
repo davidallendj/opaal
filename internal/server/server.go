@@ -141,38 +141,47 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 			p    = params.AuthProvider
 			jwks []byte
 		)
-		// try and get the JWKS from param first
-		if p.Endpoints.JwksUri != "" {
-			err := p.FetchJwks()
+
+		fetchAndMarshal := func() (err error) {
+			err = p.FetchJwks()
 			if err != nil {
-				fmt.Printf("failed to fetch keys using JWKS url...trying to fetch config and try again...\n")
+				fmt.Printf("failed to fetch keys: %v\n", err)
+				return
 			}
 			jwks, err = json.Marshal(p.KeySet)
 			if err != nil {
 				fmt.Printf("failed to marshal JWKS: %v\n", err)
 			}
-		} else if p.Endpoints.Config != "" && jwks == nil {
-			// otherwise, try and fetch the whole config and try again
-			err := p.FetchServerConfig()
-			if err != nil {
-				fmt.Printf("failed to fetch server config: %v\n", err)
-				http.Redirect(w, r, "/error", http.StatusInternalServerError)
-				return
-			}
-			err = p.FetchJwks()
-			if err != nil {
-				fmt.Printf("failed to fetch JWKS after fetching server config: %v\n", err)
-				http.Redirect(w, r, "/error", http.StatusInternalServerError)
+			return
+		}
+
+		// try and get the JWKS from param first
+		if p.Endpoints.JwksUri != "" {
+			if err := fetchAndMarshal(); err != nil {
+				w.Write(jwks)
 				return
 			}
 		}
 
-		// forward the JWKS from the authorization server
-		if jwks == nil {
-			fmt.Printf("no JWKS was fetched from authorization server\n")
-			http.Redirect(w, r, "/error", http.StatusInternalServerError)
+		// otherwise or if fetching the JWKS failed, try and fetch the whole config first and try again
+		if p.Endpoints.Config != "" {
+			if err := p.FetchServerConfig(); err != nil {
+				fmt.Printf("failed to fetch server config: %v\n", err)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			fmt.Printf("getting JWKS from param failed and endpoints config unavailable\n")
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+
+		if err := fetchAndMarshal(); err != nil {
+			fmt.Printf("failed to fetch and marshal JWKS after config update: %v\n", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
 		w.Write(jwks)
 	})
 	r.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
