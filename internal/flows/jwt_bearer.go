@@ -51,6 +51,10 @@ func NewJwtBearerFlow(eps JwtBearerFlowEndpoints, params JwtBearerFlowParams) (s
 	if client == nil {
 		return "", fmt.Errorf("invalid client (client is nil)")
 	}
+
+	if verbose {
+		fmt.Printf("ID token (IDP): %s\n access token (IDP): %s", accessToken, idToken)
+	}
 	if accessToken != "" {
 		_, err := jws.Verify([]byte(accessToken), jws.WithKeySet(client.Provider.KeySet), jws.WithValidateKey(true))
 		if err != nil {
