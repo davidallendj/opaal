@@ -109,12 +109,14 @@ func (client *Client) FetchTokenFromAuthenticationServer(code string, state stri
 	}
 	res, err := http.PostForm(client.Provider.Endpoints.Token, body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get ID token: %s", err)
+		return nil, fmt.Errorf("failed to get ID token: %v", err)
 	}
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %v", err)
+	}
+	fmt.Printf("%s\n", string(b))
 	defer res.Body.Close()
-
-	// domain, _ := url.Parse("http://127.0.0.1")
-	// client.Jar.SetCookies(domain, res.Cookies())
 
 	return io.ReadAll(res.Body)
 }
