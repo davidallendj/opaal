@@ -118,5 +118,5 @@ func (client *Client) FetchTokenFromAuthenticationServer(code string, state stri
 	fmt.Printf("%s\n", string(b))
 	defer res.Body.Close()
 
-	return io.ReadAll(res.Body)
+	return b, nil
 }
