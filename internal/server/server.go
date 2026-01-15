@@ -137,6 +137,7 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 		}
 	})
 	r.HandleFunc("/keys", func(w http.ResponseWriter, r *http.Request) {
+		
 		var (
 			p    = params.AuthProvider
 			jwks []byte
