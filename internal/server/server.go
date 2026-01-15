@@ -137,6 +137,7 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 		}
 	})
 	r.HandleFunc("/keys", func(w http.ResponseWriter, r *http.Request) {
+		
 		var (
 			p    = params.AuthProvider
 			jwks []byte
@@ -182,6 +183,7 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.Write(jwks)
 	})
 	r.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
@@ -217,6 +219,7 @@ func (s *Server) StartLogin(clients []oauth.Client, params ServerParams) error {
 				http.Redirect(w, r, "/error", http.StatusInternalServerError)
 				return
 			}
+			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(accessToken))
 		}
 	})
